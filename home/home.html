@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QG BMS — Dashboard</title>
+  <link rel="icon" href="/assets/qg.jpg">
+  <link rel="stylesheet" href="/shared/qg-theme.css">
+  <link rel="stylesheet" href="/home/home.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+</head>
+<body>
+
+<!-- ── FULL-PAGE SHELL ── -->
+<div class="shell">
+
+  <!-- NAV BAR -->
+  <header class="navbar" id="navbar">
+    <div class="navbar-inner">
+      <!-- Logo -->
+      <div class="nav-brand" onclick="homeManager._navigate('dashboard')" style="cursor:pointer" title="Go to Dashboard">
+        <div class="nav-logo-wrap">
+          <img src="/assets/qg.jpg" alt="Quadgen Wireless" class="nav-logo-img" onerror="this.parentElement.classList.add('logo-fallback')">
+        </div>
+        <div class="nav-brand-text">
+          <span class="nav-brand-name">Quadgen Wireless</span>
+          <span class="nav-brand-sub">Bid Management System</span>
+        </div>
+      </div>
+
+      <!-- Nav links (injected by JS) -->
+      <nav class="nav-links" id="navLinks" aria-label="Main navigation"></nav>
+
+      <!-- Right side -->
+      <div class="nav-right">
+        <!-- Notification bell — shown for Manager/Director by JS -->
+        <div class="qg-notif-wrap" id="qgNotifWrap" style="display:none">
+          <button class="qg-notif-btn" id="qgNotifBtn" onclick="QGNotifications.toggle()">
+            <i class="fas fa-bell"></i>
+            <span class="qg-notif-badge" id="qgNotifBadge" style="display:none">0</span>
+          </button>
+          <div class="qg-notif-panel" id="qgNotifPanel" style="display:none">
+            <div class="qg-notif-head">
+              <span>Notifications</span>
+              <button onclick="QGNotifications.clearAll()">Clear all</button>
+            </div>
+            <div class="qg-notif-list" id="qgNotifList"></div>
+          </div>
+        </div>
+        <div class="nav-user-block">
+          <div class="nav-user" id="navUser">
+            <div class="nav-user-avatar" id="navAvatar">—</div>
+            <div class="nav-user-info">
+              <span class="nav-user-name"  id="navName">Loading…</span>
+              <span class="nav-user-role"  id="navRole">—</span>
+            </div>
+          </div>
+          <button class="nav-signout" onclick="sessionManager.logout()" title="Sign out">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Sign out</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile hamburger -->
+      <button class="nav-hamburger" id="navHamburger" onclick="homeManager.toggleMobileNav()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <!-- Mobile dropdown -->
+    <div class="nav-mobile-panel" id="navMobilePanel">
+      <div class="nav-mobile-links" id="navMobileLinks"></div>
+      <div class="nav-mobile-user">
+        <span id="navMobileName">—</span>
+        <span id="navMobileRole" class="nav-user-role">—</span>
+      </div>
+      <button class="nav-signout" onclick="sessionManager.logout()">
+        <i class="fas fa-sign-out-alt"></i> Sign out
+      </button>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <main class="main-content" id="pageContent">
+    <div class="page-loading">
+      <div class="spinner"></div>
+      <span>Loading your dashboard…</span>
+    </div>
+  </main>
+
+</div>
+
+<!-- ── MODALS ── -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="homeManager.closeModal()" style="display:none;"></div>
+
+<div class="modal" id="bidModal" style="display:none;">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="modalTitle">Bid Information</h3>
+      <button class="modal-close" onclick="homeManager.closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="homeManager.closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modalActionBtn">Open Portal</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="deleteModal" style="display:none;">
+  <div class="modal-card modal-card--sm">
+    <div class="modal-header modal-header--danger">
+      <h3><i class="fas fa-trash"></i> Delete Bid</h3>
+      <button class="modal-close" onclick="homeManager.closeDeleteModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p id="deleteConfirmText" style="color:var(--tx-s);margin-bottom:1.2rem;line-height:1.6"></p>
+      <label class="field-label">Reason for deletion <span class="required">*</span></label>
+      <textarea id="deleteReason" class="field-input field-textarea" placeholder="Provide a reason…" rows="3"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="homeManager.closeDeleteModal()">Cancel</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn" onclick="homeManager.confirmDeleteBid()">
+        <i class="fas fa-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="access-denied-screen" id="accessDenied" style="display:none;">
+  <div class="denied-card">
+    <i class="fas fa-shield-alt denied-icon"></i>
+    <h2>Access Restricted</h2>
+    <p>Your account does not have permission to access this system. Contact your administrator.</p>
+    <button class="btn btn-primary" onclick="sessionManager.logout()">
+      <i class="fas fa-sign-out-alt"></i> Sign out
+    </button>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/shared/session.js"></script>
+<script src="/shared/qg-theme.js"></script>
+<script src="home.js"></script>
+</body>
+</html>

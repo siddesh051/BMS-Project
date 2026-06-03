@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QG BMS — Sign In</title>
+  <!-- Local CSS first — no network needed to show the page -->
+  <link rel="stylesheet" href="/auth/auth-styles.css">
+  <link rel="icon" href="/assets/qg.jpg">
+  <!-- CDN resources load async so they never block the page -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+  <!-- Fallback if CDN fails - inline the essential icon chars -->
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  </noscript>
+</head>
+<body>
+
+  <!-- animated mesh background -->
+  <div class="bg-mesh">
+    <div class="mesh-orb orb-1"></div>
+    <div class="mesh-orb orb-2"></div>
+    <div class="mesh-orb orb-3"></div>
+  </div>
+
+  <div class="login-wrapper">
+
+    <!-- left panel – brand -->
+    <div class="brand-panel">
+      <div class="brand-logo-wrap">
+        <img src="/assets/qg.jpg" alt="QG" onerror="this.style.display='none'">
+        <span class="brand-fallback">QG</span>
+      </div>
+      <h1 class="brand-name">Bid Management<br>System</h1>
+      <p class="brand-tagline">Quadgen Wireless Solutions</p>
+      <div class="brand-features">
+       <!-- <div class="feature-item"><i class="fas fa-shield-alt"></i><span>Role-based access control</span></div>
+        <div class="feature-item"><i class="fas fa-tasks"></i><span>End-to-end bid tracking</span></div>
+        <div class="feature-item"><i class="fas fa-file-excel"></i><span>Automated document management</span></div> -->
+      </div>
+    </div>
+
+    <!-- right panel – form -->
+    <div class="form-panel">
+      <div class="form-card">
+
+        <div class="form-header">
+          <h2>Welcome back</h2>
+          <p>Select your account and sign in</p>
+        </div>
+
+        <!-- FORM — select dropdown + password only -->
+        <form id="loginForm" class="login-form" autocomplete="off">
+
+          <div class="form-group">
+            <label class="field-label" for="userSelect">
+              <i class="fas fa-user-circle"></i> Select Account
+            </label>
+            <!-- Custom styled dropdown with colored role headers -->
+            <div class="custom-select-wrap" id="customSelectWrap">
+              <div class="custom-select-btn" id="customSelectBtn" onclick="authUI.toggleSelect()">
+                <div class="csel-display" id="cselDisplay">
+                  <span class="csel-placeholder">— Choose your account —</span>
+                </div>
+                <i class="fas fa-chevron-down csel-arrow" id="cselArrow"></i>
+              </div>
+              <div class="custom-select-list" id="customSelectList" style="display:none">
+                <div class="csel-search-wrap">
+                  <i class="fas fa-search"></i>
+                  <input type="text" id="cselSearch" placeholder="Search…"
+                    oninput="authUI.filterSelect(this.value)" autocomplete="off">
+                </div>
+                <div class="csel-items" id="cselItems">
+                  <div class="csel-loading"><i class="fas fa-spinner fa-spin"></i> Loading…</div>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="userSelect" name="userSelect">
+            <input type="hidden" id="username"   name="username">
+          </div>
+
+          <div class="form-group">
+            <label class="field-label" for="password">
+              <i class="fas fa-lock"></i> Password
+            </label>
+            <div class="password-wrap">
+              <input type="password" id="password" name="password" required
+                autocomplete="current-password" placeholder="Enter your password">
+              <button type="button" class="eye-btn" id="passwordToggle"
+                onclick="authUI.togglePassword()" aria-label="Toggle password">
+                <i class="fas fa-eye" id="eyeIcon"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="sign-in-btn" id="loginBtn" disabled>
+            <span id="btnText"><i class="fas fa-sign-in-alt"></i> Sign In</span>
+            <span id="btnSpinner" style="display:none"><i class="fas fa-spinner fa-spin"></i> Signing in…</span>
+          </button>
+
+        </form>
+
+        <!-- status messages -->
+        <div id="statusMsg" class="status-msg" style="display:none;"></div>
+
+        <!-- success card shown after login -->
+        <div id="successCard" class="success-card" style="display:none;">
+          <div class="success-avatar" id="successAvatar"></div>
+          <div>
+            <div class="success-name" id="successName"></div>
+            <div class="success-role" id="successRoleLabel"></div>
+          </div>
+          <div class="success-check"><i class="fas fa-check-circle"></i></div>
+        </div>
+
+        <div class="form-footer">
+          <i class="fas fa-lock"></i> All sessions are logged and monitored
+        </div>
+
+      </div>
+
+      <div class="page-version">QG BMS v1.0 &nbsp;·&nbsp; © 2025 Quadgen Wireless</div>
+    </div>
+  </div>
+
+  <script src="../shared/session.js"></script>
+  <script src="/auth/auth.js"></script>
+</body>
+</html>

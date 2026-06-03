@@ -1,0 +1,314 @@
+/* ═══════════════════════════════════════════════════════════
+   QG BMS — Unified Theme  (qg-theme.css)
+   Include this in EVERY page to get consistent look.
+   Defines: CSS vars, navbar, tables (draggable), badges,
+            notification bell, buttons, fonts.
+═══════════════════════════════════════════════════════════ */
+
+/* ── FONT ── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ── VARIABLES ── */
+:root {
+  --qg-navy:        #0f1e36;
+  --qg-navy-mid:    #162942;
+  --qg-blue-1:      #1a3f8a;
+  --qg-blue-2:      #2563c8;
+  --qg-blue-3:      #2f79e0;
+  --qg-accent:      #3b82f6;
+  --qg-accent-h:    #2563eb;
+  --qg-accent-s:    rgba(59,130,246,0.12);
+  --qg-green:       #10b981;
+  --qg-green-s:     rgba(16,185,129,0.12);
+  --qg-amber:       #f59e0b;
+  --qg-amber-s:     rgba(245,158,11,0.12);
+  --qg-red:         #ef4444;
+  --qg-red-s:       rgba(239,68,68,0.12);
+  --qg-purple:      #8b5cf6;
+  --qg-purple-s:    rgba(139,92,246,0.12);
+  --qg-bg:          #f0f7ff;
+  --qg-surface:     #ffffff;
+  --qg-surface2:    #f0f7ff;
+  --qg-border:      #c7ddf5;
+  --qg-tx-p:        #0f1e36;
+  --qg-tx-s:        #5a6a84;
+  --qg-tx-m:        #8ea0bb;
+  --qg-shadow:      0 2px 12px rgba(15,30,54,0.09);
+  --qg-shadow-l:    0 8px 32px rgba(15,30,54,0.16);
+  --qg-radius:      12px;
+  --qg-radius-sm:   8px;
+  --qg-font:        'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  --qg-navbar-grad: linear-gradient(90deg, #1a3f8a 0%, #2563c8 60%, #2f79e0 100%);
+  --qg-th-grad:     linear-gradient(90deg, #1a3f8a 0%, #2563c8 60%, #2f79e0 100%);
+}
+
+/* ── GLOBAL RESET ── */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  font-family: var(--qg-font) !important;
+  background: var(--qg-bg) !important;
+  color: var(--qg-tx-p);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ════════════════════════════════════════════
+   NAVBAR  —  replaces every page's header
+════════════════════════════════════════════ */
+.qg-navbar {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--qg-navbar-grad) !important;
+  border-bottom: 2px solid rgba(255,255,255,0.10);
+  box-shadow: 0 2px 18px rgba(10,44,110,0.28);
+  height: 72px; display: flex; align-items: center;
+  padding: 0 2rem; gap: 1.5rem;
+}
+.qg-navbar-brand {
+  display: flex; align-items: center; gap: 0.85rem;
+  text-decoration: none; flex-shrink: 0; cursor: pointer;
+}
+.qg-navbar-logo {
+  width: 52px; height: 52px; border-radius: 12px;
+  background: #fff; overflow: hidden; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15); padding: 2px;
+}
+.qg-navbar-logo img { width:100%; height:100%; object-fit:contain; display:block; }
+.qg-navbar-title { display: flex; flex-direction: column; }
+.qg-navbar-title .name { color:#fff; font-weight:800; font-size:1rem; letter-spacing:-0.02em; }
+.qg-navbar-title .sub  { color:rgba(255,255,255,0.6); font-size:0.68rem; margin-top:1px; }
+
+.qg-navbar-links { flex:1; display:flex; align-items:center; gap:4px; }
+.qg-nav-link {
+  padding: 0.45rem 1rem; border-radius:8px;
+  color:rgba(255,255,255,0.78); font-weight:600; font-size:0.875rem;
+  background:none; border:none; cursor:pointer; font-family:var(--qg-font);
+  text-decoration:none; display:inline-flex; align-items:center; gap:0.45rem;
+  transition: all 0.16s;
+}
+.qg-nav-link:hover  { background:rgba(255,255,255,0.12); color:#fff; }
+.qg-nav-link.active { background:rgba(255,255,255,0.18); color:#fff; box-shadow:0 0 0 1px rgba(255,255,255,0.25); }
+
+/* Notification bell */
+.qg-notif-wrap  { position:relative; display:flex; align-items:center; }
+.qg-notif-btn {
+  width:38px; height:38px; border-radius:9px;
+  background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22);
+  color:rgba(255,255,255,0.88); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:1rem;
+  transition:all 0.16s; position:relative;
+}
+.qg-notif-btn:hover { background:rgba(255,255,255,0.22); color:#fff; }
+.qg-notif-btn.ring  { animation:qgBellRing 0.6s ease; }
+@keyframes qgBellRing {
+  0%,100%{ transform:rotate(0); } 20%{ transform:rotate(-14deg); }
+  40%{ transform:rotate(14deg); } 60%{ transform:rotate(-9deg); } 80%{ transform:rotate(9deg); }
+}
+.qg-notif-badge {
+  position:absolute; top:-5px; right:-5px;
+  min-width:18px; height:18px; border-radius:10px;
+  background:#ef4444; color:#fff; font-size:0.62rem; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+  border:2px solid transparent;
+  animation:qgBadgePop 0.3s cubic-bezier(0.34,1.5,0.64,1);
+}
+@keyframes qgBadgePop { from{transform:scale(0)} to{transform:scale(1)} }
+
+/* Notification panel */
+.qg-notif-panel {
+  position:absolute; top:calc(100% + 10px); right:0;
+  width:320px; background:#fff; border-radius:14px;
+  box-shadow:var(--qg-shadow-l); border:1px solid var(--qg-border);
+  z-index:500; overflow:hidden;
+  animation:qgPanelIn 0.22s cubic-bezier(0.34,1.2,0.64,1);
+}
+@keyframes qgPanelIn {
+  from{opacity:0;transform:translateY(-8px) scale(0.96)}
+  to  {opacity:1;transform:translateY(0) scale(1)}
+}
+.qg-notif-head {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:0.85rem 1rem;
+  background:var(--qg-navbar-grad); color:#fff;
+  font-size:0.88rem; font-weight:700;
+}
+.qg-notif-head button { background:none; border:none; color:rgba(255,255,255,0.65); font-size:0.75rem; cursor:pointer; font-weight:600; }
+.qg-notif-list { max-height:320px; overflow-y:auto; }
+.qg-notif-list::-webkit-scrollbar { width:4px; }
+.qg-notif-list::-webkit-scrollbar-thumb { background:var(--qg-border); border-radius:3px; }
+.qg-notif-empty { padding:2.5rem 1rem; text-align:center; color:var(--qg-tx-m); font-size:0.85rem; }
+.qg-notif-item {
+  display:flex; align-items:flex-start; gap:0.7rem;
+  padding:0.85rem 1rem; cursor:pointer; transition:background 0.12s;
+  border-bottom:1px solid var(--qg-border); position:relative;
+}
+.qg-notif-item:hover { background:#f0f7ff; }
+.qg-notif-item.read  { opacity:0.6; }
+.qg-notif-icon {
+  width:34px; height:34px; border-radius:10px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:0.85rem;
+}
+.qg-notif-icon.upload  { background:#eff6ff; color:#2563eb; }
+.qg-notif-icon.submit  { background:#fef3c7; color:#d97706; }
+.qg-notif-icon.approve { background:#d1fae5; color:#059669; }
+.qg-notif-body    { flex:1; min-width:0; }
+.qg-notif-title   { font-size:0.83rem; font-weight:700; color:var(--qg-tx-p); }
+.qg-notif-msg     { font-size:0.78rem; color:var(--qg-tx-s); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qg-notif-time    { font-size:0.7rem; color:var(--qg-tx-m); margin-top:3px; }
+.qg-notif-dot     { width:8px; height:8px; border-radius:50%; background:var(--qg-accent); flex-shrink:0; margin-top:5px; }
+
+/* User info */
+.qg-user-block { display:flex; flex-direction:column; align-items:flex-end; gap:0.3rem; }
+.qg-user-row   { display:flex; align-items:center; gap:0.6rem; }
+.qg-user-avatar {
+  width:38px; height:38px; border-radius:50%;
+  background:linear-gradient(135deg, var(--qg-accent), var(--qg-purple));
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:800; font-size:0.85rem;
+  box-shadow:0 2px 8px rgba(59,130,246,0.4);
+}
+.qg-user-name   { color:#fff; font-weight:700; font-size:0.82rem; }
+.qg-user-role   { color:rgba(255,255,255,0.55); font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; }
+.qg-user-role.role-manager  { color:#93c5fd; }
+.qg-user-role.role-director { color:#c4b5fd; }
+.qg-user-role.role-engineer { color:#6ee7b7; }
+.qg-user-role.role-admin    { color:#fca5a5; }
+
+.qg-signout {
+  display:inline-flex; align-items:center; gap:0.35rem;
+  padding:0.28rem 0.7rem; border-radius:6px;
+  background:rgba(255,255,255,0.10); border:1px solid rgba(255,255,255,0.18);
+  color:rgba(255,255,255,0.75); font-family:var(--qg-font); font-size:0.75rem; font-weight:600;
+  cursor:pointer; transition:all 0.16s;
+}
+.qg-signout:hover { background:rgba(239,68,68,0.22); color:#fca5a5; border-color:rgba(239,68,68,0.35); }
+
+/* ════════════════════════════════════════════
+   TABLES  —  shared data-table style + draggable
+════════════════════════════════════════════ */
+.qg-table-wrap { overflow-x:auto; }
+.qg-table {
+  width:100%; border-collapse:collapse; font-size:0.875rem;
+  font-family:var(--qg-font);
+}
+.qg-table th {
+  padding:0.75rem 1rem; text-align:left;
+  background:var(--qg-th-grad);
+  color:rgba(255,255,255,0.92);
+  font-weight:700; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.08em;
+  border-bottom:2px solid rgba(255,255,255,0.10); white-space:nowrap;
+  user-select:none;
+}
+.qg-table th[draggable] { cursor:grab; }
+.qg-table th[draggable]:active { cursor:grabbing; }
+.qg-table th .drag-handle {
+  display:inline-block; margin-left:6px; opacity:0.38;
+  font-size:0.75rem; vertical-align:middle;
+}
+.qg-table th.col-dragging   { opacity:0.45; background:rgba(37,99,200,0.55) !important; }
+.qg-table th.col-drag-over  { background:rgba(47,121,224,0.90) !important; box-shadow:inset 3px 0 0 #fff; }
+
+.qg-table td {
+  padding:0.9rem 1rem; border-bottom:1px solid var(--qg-border);
+  vertical-align:middle; color:var(--qg-tx-p);
+}
+.qg-table tbody tr { transition:background 0.12s; animation:qgRowIn 0.22s ease both; }
+.qg-table tbody tr:hover { background:#e8f4ff; }
+.qg-table tbody tr:last-child td { border-bottom:none; }
+@keyframes qgRowIn { from{opacity:0;transform:translateX(-5px)} to{opacity:1;transform:translateX(0)} }
+
+/* Progress bar inside table */
+.qg-prog-wrap { display:flex; align-items:center; gap:0.6rem; }
+.qg-prog-bg   { flex:1; height:5px; background:var(--qg-border); border-radius:4px; overflow:hidden; min-width:60px; }
+.qg-prog-bar  { height:100%; border-radius:4px; background:var(--qg-accent); transition:width 0.6s ease; }
+.qg-prog-bar.done { background:var(--qg-green); }
+.qg-prog-pct  { font-size:0.72rem; font-weight:600; color:var(--qg-tx-s); min-width:28px; text-align:right; }
+
+/* ════════════════════════════════════════════
+   CARDS
+════════════════════════════════════════════ */
+.qg-card { background:var(--qg-surface); border-radius:var(--qg-radius); border:1px solid var(--qg-border); overflow:hidden; box-shadow:var(--qg-shadow); margin-bottom:1rem; }
+.qg-card-head {
+  padding:0.95rem 1.3rem; border-bottom:1px solid var(--qg-border);
+  background:var(--qg-surface2);
+  display:flex; justify-content:space-between; align-items:center; gap:0.75rem; flex-wrap:wrap;
+}
+.qg-card-head h3 { font-size:0.95rem; font-weight:700; color:var(--qg-tx-p); margin:0; }
+.qg-card-body { padding:1.3rem; }
+
+/* ════════════════════════════════════════════
+   BADGES
+════════════════════════════════════════════ */
+.qg-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 9px; border-radius:20px;
+  font-size:0.72rem; font-weight:700; white-space:nowrap;
+}
+.qg-badge-blue   { background:var(--qg-accent-s);  color:#2563eb; }
+.qg-badge-green  { background:var(--qg-green-s);   color:#059669; }
+.qg-badge-amber  { background:var(--qg-amber-s);   color:#d97706; }
+.qg-badge-red    { background:var(--qg-red-s);     color:#dc2626; }
+.qg-badge-gray   { background:#f1f5f9; color:var(--qg-tx-s); }
+.qg-badge-purple { background:var(--qg-purple-s);  color:#7c3aed; }
+
+/* ════════════════════════════════════════════
+   BUTTONS
+════════════════════════════════════════════ */
+.qg-btn {
+  display:inline-flex; align-items:center; gap:0.45rem;
+  padding:0.52rem 1.05rem; border-radius:8px;
+  font-family:var(--qg-font); font-weight:600; font-size:0.875rem;
+  cursor:pointer; border:none; transition:all 0.16s;
+  text-decoration:none; white-space:nowrap;
+}
+.qg-btn-primary { background:var(--qg-blue-2); color:#fff; }
+.qg-btn-primary:hover { background:var(--qg-blue-1); box-shadow:0 4px 14px rgba(37,99,200,0.35); }
+.qg-btn-ghost   { background:none; color:var(--qg-tx-s); border:1px solid var(--qg-border); }
+.qg-btn-ghost:hover { background:var(--qg-bg); color:var(--qg-tx-p); }
+.qg-btn-sm      { padding:0.32rem 0.75rem; font-size:0.78rem; border-radius:6px; }
+
+/* ════════════════════════════════════════════
+   SEARCH / FILTER
+════════════════════════════════════════════ */
+.qg-search-wrap { position:relative; }
+.qg-search-wrap i { position:absolute; left:0.8rem; top:50%; transform:translateY(-50%); color:var(--qg-tx-m); font-size:0.82rem; pointer-events:none; }
+.qg-search-input {
+  width:100%; padding:0.52rem 0.85rem 0.52rem 2.25rem;
+  border:1px solid var(--qg-border); border-radius:8px;
+  font-family:var(--qg-font); font-size:0.875rem; color:var(--qg-tx-p);
+  background:var(--qg-surface); transition:border-color 0.16s, box-shadow 0.16s;
+}
+.qg-search-input:focus { outline:none; border-color:var(--qg-blue-2); box-shadow:0 0 0 3px rgba(37,99,200,0.14); }
+.qg-select {
+  padding:0.52rem 0.85rem; border:1px solid var(--qg-border); border-radius:8px;
+  font-family:var(--qg-font); font-size:0.875rem; color:var(--qg-tx-p);
+  background:var(--qg-surface); cursor:pointer;
+}
+.qg-select:focus { outline:none; border-color:var(--qg-blue-2); }
+
+/* ════════════════════════════════════════════
+   JS HELPER — attach this to any .qg-table
+   Call: initQGTableDrag(tableElement)
+════════════════════════════════════════════ */
+
+/* Column resizing */
+.qg-table th,
+table thead th {
+  position: relative;
+  overflow: visible !important;
+}
+.col-resizer {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  background: transparent;
+  border-right: 2px solid rgba(255,255,255,0.22);
+  transition: border-color 0.15s;
+  z-index: 10;
+}
+.col-resizer:hover,
+.col-resizer:active {
+  border-right-color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.15);
+}

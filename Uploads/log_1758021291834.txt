@@ -1,0 +1,57 @@
+Configuration loaded successfully
+Environment: production
+Host: 172.17.1.20:5001
+Serving static files from: C:\inetpub\wwwroot\qg_bid_portal
+
+Enhanced Bid Portal Server Started Successfully!
+Authentication enabled with Portal/Tracker access control
+Dynamic bid management enabled
+Local access: http://localhost:5001
+Network access: http://172.17.1.20:5001
+File found: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bid wise Master files.xlsx
+Bid master file: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bid wise Master files.xlsx
+File found: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bidportal_Userinfo.xlsx
+User data file: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bidportal_Userinfo.xlsx
+Allowed paths: 1 configured
+Loading user data from Excel...
+File found: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bidportal_Userinfo.xlsx
+User data file path: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bidportal_Userinfo.xlsx
+User data sheets found: [
+  'Users',
+  'Admin Users',
+  'All Users',
+  'Permissions',
+  'Permission Data',
+  'Sessions'
+]
+Loaded 17 users from "All Users" sheet
+Loaded 11 permission rules
+Total users loaded: 17
+Users loaded: 17
+Portal Access: 9 users
+Tracker Access: 17 users
+Both Access: 9 users
+Loading bid data from Excel...
+File found: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bid wise Master files.xlsx
+Bid master file path: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bid wise Master files.xlsx
+Bid master sheets found: [ 'Sheet1' ]
+Bid master file has 3 rows
+Skipping header row: [ 'Bid Name', 'Master File location' ]
+Total bids loaded: 2
+Bids loaded: 2
+File found: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bid wise Master files.xlsx
+From: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bid wise Master files.xlsx
+Valid file paths: 2/2
+Accessible bids: 2/2
+File found: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bid wise Master files.xlsx
+Project folders discovered: 1
+Project folders: C NOC
+
+=== Testing Network Access ===
+File found: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bid wise Master files.xlsx
+File found: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bidportal_Userinfo.xlsx
+================================
+
+Bid master file accessible: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bid wise Master files.xlsx
+User data file accessible: \\172.17.1.6\Bids & Proposal\Bid_Config_Files\Bidportal_Userinfo.xlsx
+Allowed path 1 accessible: \\172.17.1.6\Bids & Proposal

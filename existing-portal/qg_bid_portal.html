@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QG_Bids&Proposals</title>
+    <link rel="icon" href="/assets/qg.jpg">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header>
+    <div class="header-top">
+        <div class="header-left">
+            <div class="logo"></div>
+            <h1>Web Bid Document Portal</h1>
+        </div>
+        <div class="header-right">
+            <input type="text" id="searchBar" placeholder="Search documents..." class="search-bar">
+            <div class="user-session-info">
+                <span id="currentUser">Loading...</span>
+                <button id="logoutBtn" class="logout-btn" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="filter-buttons" id="filterButtons"></div>
+</header>
+
+<main id="mainContent">
+    <div id="loadingMessage" class="loading-message">
+        <i class="fas fa-spinner fa-spin"></i> Loading Excel file from network drive...
+    </div>
+    <div id="errorMessage" class="error-message"></div>
+    <div id="noResults" class="no-results" style="display: none;">
+        No documents match your search criteria.    
+    </div>
+</main>
+
+<footer>
+    <i class="fas fa-lock"></i> All documents are confidential. Unauthorized access is prohibited.
+</footer>
+
+<!-- Modal for displaying document lists -->
+<div class="modal" id="docModal">
+    <div class="modal-content">
+        <span class="close-modal" id="closeModal">&times;</span>
+        <h3 id="modalTitle"></h3>
+        <ul id="modalList"></ul>
+    </div>
+</div>
+
+<script>
+// Session Management
+function checkSessionStatus() {
+    const userData = sessionStorage.getItem('userData');
+    if (!userData) {
+        console.log('No session found, redirecting to login');
+        window.location.href = '/auth/login.html';
+        return false;
+    }
+    return true;
+}
+
+function logout() {
+    console.log('Logging out user...');
+    
+    const userData = sessionStorage.getItem('userData');
+    const sessionId = sessionStorage.getItem('sessionId');
+    
+    // Notify server about logout
+    if (userData) {
+        const user = JSON.parse(userData);
+        fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sessionId: sessionId,
+                userId: user.UserID
+            })
+        }).catch(err => console.log('Logout API call failed:', err));
+    }
+    
+    // Clear all session data
+    sessionStorage.clear();
+    localStorage.clear();
+    
+    // Redirect to login
+    window.location.href = '/auth/login.html';
+}
+
+// Cross-tab logout detection
+window.addEventListener('storage', function(e) {
+    if (e.key === 'userData' && !e.newValue) {
+        console.log('Logout detected from another tab');
+        window.location.href = '/auth/login.html';
+    }
+});
+
+// Replace lines ~85-105 in qg_bid_portal.html with this fixed version:
+
+window.addEventListener('DOMContentLoaded', function() {
+    
+    // Display current user info from session
+    const userData = sessionStorage.getItem('userData');
+    if (userData) {
+        try {
+            const user = JSON.parse(userData);
+            const userDisplay = document.getElementById('currentUser');
+            
+            // FIX: Use correct property names that SessionManager creates
+            const displayName = user.fullName || user.FullName || user.username || user.UserName || 'User';
+            
+            if (userDisplay && displayName !== 'User') {
+                userDisplay.innerHTML = `Welcome, <span class="user-name">${displayName}</span>`;
+            } else {
+                userDisplay.innerHTML = `Welcome, <span class="user-name">User</span>`;
+            }
+        } catch (error) {
+            console.error('Error parsing user data:', error);
+            const userDisplay = document.getElementById('currentUser');
+            if (userDisplay) {
+                userDisplay.innerHTML = `Welcome, <span class="user-name">Portal User</span>`;
+            }
+        }
+    } else {
+        const userDisplay = document.getElementById('currentUser');
+        if (userDisplay) {
+            userDisplay.innerHTML = `Welcome, <span class="user-name">User</span>`;
+        }
+    }
+
+    // Add logout button event listener
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logout);
+    }
+});
+
+class BidPortalApp {    
+    constructor() {
+        this.sections = [];
+        this.currentFilter = 'all';
+        this.searchTerm = '';
+        this.serverUrl = window.location.origin;
+        this.workbookData = null;
+        this.bidName = '';
+        this.init();
+    }
+
+    async init() {
+        try {
+            await this.loadExcelData();
+            this.setupEventListeners();
+            this.hideLoading();
+        } catch (error) {
+            this.showError(error.message);
+        }
+    }
+
+    async loadExcelData() {
+        console.log('Loading Excel file from server API...');
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const bidId = urlParams.get('bid');
+        
+        if (!bidId) {
+            throw new Error('No bid ID specified in URL. Please access this portal through the home page.');
+        }
+        
+        console.log('Loading bid-specific Excel file for:', bidId);
+        this.bidName = bidId;
+        
+        try {
+            const response = await fetch(`${this.serverUrl}/api/excel/${bidId}`);
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`Failed to load Excel file: ${response.status} ${response.statusText}. ${errorData.details || ''}`);
+            }
+            
+            const arrayBuffer = await response.arrayBuffer();
+            console.log('Excel file loaded from network drive, size:', arrayBuffer.byteLength, 'bytes');
+            
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            console.log('Sheets found:', workbook.SheetNames);
+            
+            if (workbook.SheetNames.length === 0) {
+                throw new Error('Excel file contains no worksheets');
+            }
+
+            this.processWorkbook(workbook);
+            
+        } catch (error) {
+            console.error('Error loading Excel file:', error);
+            throw new Error(`Network drive access failed: ${error.message}`);
+        }
+    }
+
+    processWorkbook(workbook) {
+        const mainContainer = document.getElementById('mainContent');
+        const filterContainer = document.getElementById('filterButtons');
+        
+        filterContainer.innerHTML = '';
+        this.clearMainContent();
+
+        // Update page title and header with bid name in capital letters
+        const bidNameUpper = this.bidName.toUpperCase();
+        document.title = `QG Bid Portal - ${bidNameUpper}`;
+        
+        const headerTitle = document.querySelector('header h1');
+        if (headerTitle) {
+            headerTitle.innerHTML = `<span class="bid-name">${bidNameUpper}</span> -- Web Bid Document Portal`;
+        }
+
+        this.createFilterButton('all', 'All Documents', true);
+
+        workbook.SheetNames.forEach(sheetName => {
+            console.log('Processing sheet:', sheetName);
+            
+            const sheet = workbook.Sheets[sheetName];
+            if (!sheet) {
+                console.warn('Empty sheet:', sheetName);
+                return;
+            }
+
+            const sectionData = this.parseSheet(sheet, sheetName);
+            if (sectionData) {
+                this.sections.push(sectionData);
+                this.createFilterButton(sectionData.id, sectionData.title);
+                this.createSectionElement(sectionData);
+            }
+        });
+
+        console.log(`Successfully processed ${this.sections.length} sections`);
+        
+        this.workbookData = workbook;
+        console.log('Workbook data stored, notifying priority system...');
+        
+        this.notifyPrioritySystem();
+    }
+
+    notifyPrioritySystem() {
+        setTimeout(() => {
+            if (window.prioritySystem) {
+                console.log('Initializing priority system with workbook data');
+                window.prioritySystem.init(this.workbookData);
+            } else {
+                console.log('Priority system not ready yet, will retry...');
+                setTimeout(() => {
+                    if (window.prioritySystem) {
+                        console.log('Initializing priority system with workbook data (retry)');
+                        window.prioritySystem.init(this.workbookData);
+                    } else {
+                        console.warn('Priority system still not available');
+                    }
+                }, 1000);
+            }
+        }, 500);
+    }
+
+    parseSheet(sheet, sheetName) {
+        let sectionTitle = sheetName;
+        if (sheet['A1'] && sheet['A1'].v) {
+            sectionTitle = sheet['A1'].v.toString().trim();
+        }
+
+        const sectionId = sectionTitle.split(/\s+/)[0].toLowerCase();
+        
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        console.log(`Sheet "${sheetName}" has ${rows.length} rows`);
+
+        let currentSubHeader = null;
+        const subSections = {};
+        let documentCount = 0;
+
+        rows.forEach((row, index) => {
+            const colA = row[0] ? row[0].toString().trim() : "";
+            const colB = row[1] ? row[1].toString().trim() : "";
+
+            if (!colA && !colB) return;
+
+            if (!colA && colB) {
+                currentSubHeader = colB;
+                if (!subSections[currentSubHeader]) {
+                    subSections[currentSubHeader] = [];
+                }
+                console.log(`Found sub-header: "${currentSubHeader}"`);
+            } else if (colA && colB) {
+                if (currentSubHeader) {
+                    const colK = row[10] ? row[10].toString().trim() : "";
+                    subSections[currentSubHeader].push({
+                        id: colA,
+                        name: colB,
+                        filePath: colK
+                    });
+                    documentCount++;
+                }
+            }
+        });
+
+        if (Object.keys(subSections).length === 0) {
+            console.warn(`No sub-sections found in sheet: ${sheetName}`);
+            return null;
+        }
+
+        console.log(`Sheet "${sheetName}": ${Object.keys(subSections).length} sub-sections, ${documentCount} documents`);
+
+        return {
+            id: sectionId,
+            title: sectionTitle,
+            subSections: subSections,
+            documentCount: documentCount
+        };
+    }
+
+    createFilterButton(filterId, title, isActive = false) {
+        const filterContainer = document.getElementById('filterButtons');
+        const button = document.createElement('button');
+        button.className = `filter-btn ${isActive ? 'active' : ''}`;
+        button.dataset.filter = filterId;
+        button.textContent = title;
+        
+        button.addEventListener('click', () => this.handleFilterClick(filterId));
+        filterContainer.appendChild(button);
+    }
+
+    createSectionElement(sectionData) {
+        const mainContainer = document.getElementById('mainContent');
+        
+        const section = document.createElement('div');
+        section.className = 'section';
+        section.dataset.section = sectionData.id;
+
+        const totalDocs = Object.values(sectionData.subSections)
+            .reduce((sum, docs) => sum + docs.length, 0);
+
+        const header = document.createElement('h2');
+
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = `${sectionData.title} (${totalDocs})`;
+
+        const arrowSpan = document.createElement('span');
+        arrowSpan.classList.add('arrow');
+        arrowSpan.innerHTML = '&#9660;';
+
+        header.appendChild(titleSpan);
+        header.appendChild(arrowSpan);
+
+        header.addEventListener('click', () => this.toggleSection(section));
+        section.appendChild(header);
+
+        const content = document.createElement('div');
+        content.className = 'section-content';
+
+        Object.entries(sectionData.subSections).forEach(([subHeaderTitle, documents]) => {
+            if (documents.length > 0) {
+                const button = document.createElement('button');
+                button.className = 'sub-header-btn';
+                button.innerHTML = `${subHeaderTitle} <span class="document-count">${documents.length} documents</span>`;
+                
+                button.addEventListener('click', () => this.openModal(subHeaderTitle, documents));
+                content.appendChild(button);
+            }
+        });
+
+        section.appendChild(content);
+        mainContainer.appendChild(section);
+    }
+
+    toggleSection(section) {
+        const content = section.querySelector('.section-content');
+        const arrow = section.querySelector('.arrow');
+        
+        content.classList.toggle('show');
+        
+        if (content.classList.contains('show')) {
+            arrow.innerHTML = '&#9650;';
+        } else {
+            arrow.innerHTML = '&#9660;';
+        }
+    }
+
+    openModal(title, documents) {
+        const modal = document.getElementById('docModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalList = document.getElementById('modalList');
+
+        modalTitle.textContent = title;
+        modalList.innerHTML = '';
+
+        documents.forEach(doc => {
+            const li = document.createElement('li');
+            li.className = 'document-item';
+            
+            if (doc.filePath) {
+                const docContainer = document.createElement('div');
+                docContainer.className = 'document-container';
+                
+                const docName = document.createElement('span');
+                docName.className = 'document-name';
+                docName.textContent = doc.name;
+                docName.title = `File: ${doc.filePath}`;
+                
+                const actionsContainer = document.createElement('div');
+                actionsContainer.className = 'document-actions';
+                
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'action-btn view-btn';
+                viewBtn.innerHTML = '<i class="fas fa-eye"></i> View';
+                viewBtn.title = 'Open file in browser/viewer';
+                viewBtn.addEventListener('click', () => this.viewFile(doc.filePath, doc.name));
+                
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'action-btn download-btn';
+                downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download';
+                downloadBtn.title = 'Download file to your computer';
+                downloadBtn.addEventListener('click', () => this.downloadFile(doc.filePath, doc.name));
+                
+                actionsContainer.appendChild(viewBtn);
+                actionsContainer.appendChild(downloadBtn);
+                
+                docContainer.appendChild(docName);
+                docContainer.appendChild(actionsContainer);
+                li.appendChild(docContainer);
+                
+            } else {
+                li.innerHTML = `<span class="document-name no-file">${doc.name}</span>`;
+                li.className = 'document-item no-download';
+            }
+            
+            modalList.appendChild(li);
+        });
+
+        modal.style.display = 'flex';
+    }
+
+    async viewFile(filePath, fileName) {
+        console.log('Opening file for view:', filePath);
+        
+        try {
+            const viewUrl = `${this.serverUrl}/view?path=${encodeURIComponent(filePath)}`;
+            console.log('View URL:', viewUrl);
+            
+            this.showViewLoading(fileName, filePath);
+            
+            const newWindow = window.open(viewUrl, '_blank', 'noopener,noreferrer');
+            
+            if (!newWindow) {
+                this.hideViewLoading();
+                this.showViewError('Popup blocked. Please allow popups and try again.', fileName);
+                return;
+            }
+            
+            setTimeout(() => {
+                try {
+                    if (newWindow.closed) {
+                        console.log('View window was closed by user');
+                        this.hideViewLoading();
+                        return;
+                    }
+                    
+                    this.hideViewLoading();
+                    this.showViewAttempt(fileName, filePath);
+                    
+                } catch (error) {
+                    console.log('Cross-origin access (file likely loaded successfully)');
+                    this.hideViewLoading();
+                    this.showViewAttempt(fileName, filePath);
+                }
+            }, 3000);
+            
+            setTimeout(() => {
+                try {
+                    if (!newWindow.closed) {
+                        console.log('File still loading after 60 seconds - likely successful');
+                    }
+                } catch (error) {
+                    console.log('Window access restricted - file likely loaded');
+                }
+            }, 60000);
+            
+        } catch (error) {
+            console.error('View error:', error);
+            this.hideViewLoading();
+            this.showViewError('Failed to open file: ' + error.message, fileName);
+        }
+    }
+
+    async downloadFile(filePath, fileName) {
+        console.log('Starting network drive download for:', filePath);
+        
+        try {
+            const downloadUrl = `${this.serverUrl}/download?path=${encodeURIComponent(filePath)}`;
+            console.log('Download URL:', downloadUrl);
+            
+            this.showDownloadAttempt(fileName || 'Document', filePath);
+            
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = fileName || 'document';
+            link.style.display = 'none';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            console.log('Download initiated through server for:', filePath);
+            
+        } catch (error) {
+            console.error('Download error:', error);
+            this.showDownloadError('Download failed: ' + error.message, filePath, filePath);
+        }
+    }
+
+    showViewLoading(fileName, filePath) {
+        this.hideViewLoading();
+        
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'view-loading';
+        loadingDiv.id = 'viewLoadingMessage';
+        loadingDiv.innerHTML = `
+            <i class="fas fa-spinner fa-spin"></i>        
+            <strong>Opening File...</strong><br>
+            ${fileName}<br>
+            <small>File: ${filePath}</small><br>
+            <small>Loading in new window (up to 60 seconds)</small>
+            <button onclick="this.parentElement.remove()" class="close-loading">×</button>
+        `;
+        
+        document.body.appendChild(loadingDiv);
+    }
+
+    hideViewLoading() {
+        const existingLoading = document.getElementById('viewLoadingMessage');
+        if (existingLoading) {
+            existingLoading.remove();
+        }
+        
+        const existingSuccess = document.querySelectorAll('.view-success');
+        existingSuccess.forEach(element => element.remove());
+    }
+
+    showViewAttempt(fileName, filePath) {
+        const attemptDiv = document.createElement('div');
+        attemptDiv.className = 'view-success';
+        attemptDiv.innerHTML = `
+            <i class="fas fa-eye"></i>        
+            <strong>File Opened</strong><br>
+            ${fileName}<br>
+            <small>File: ${filePath}</small><br>
+            <small>Opened in new tab/window</small>
+            <button onclick="this.parentElement.remove()" class="close-success">×</button>
+        `;
+        
+        document.body.appendChild(attemptDiv);
+        
+        setTimeout(() => {
+            if (attemptDiv.parentElement) {
+                attemptDiv.remove();
+            }
+        }, 4000);
+    }
+
+    showViewError(message, fileName) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'view-error';
+        errorDiv.innerHTML = `
+            <i class="fas fa-exclamation-circle"></i>            
+            <small><strong>Tip:</strong> Try the download option instead</small>
+            <button onclick="this.parentElement.remove()" class="close-error">×</button>
+        `;
+        
+        document.body.appendChild(errorDiv);
+        
+        setTimeout(() => {
+            if (errorDiv.parentElement) {
+                errorDiv.remove();
+            }
+        }, 6000);
+    }
+
+    showDownloadAttempt(fileName, filePath) {
+        const attemptDiv = document.createElement('div');
+        attemptDiv.className = 'download-success';
+        attemptDiv.innerHTML = `
+            <i class="fas fa-download"></i>        
+            <strong>Download Started</strong><br>
+            ${fileName}<br>
+            <small>File: ${filePath}</small><br>
+            <small>Check your Downloads folder</small>
+            <button onclick="this.parentElement.remove()" class="close-success">×</button>
+        `;
+        
+        document.body.appendChild(attemptDiv);
+        
+        setTimeout(() => {
+            if (attemptDiv.parentElement) {
+                attemptDiv.remove();
+            }
+        }, 5000);
+    }
+    
+    showDownloadError(message, originalPath, attemptedPath) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'download-error';
+        errorDiv.innerHTML = `
+            <i class="fas fa-exclamation-circle"></i>
+            <strong>Download Failed:</strong> ${message}<br>
+            <small><strong>File path:</strong> ${originalPath}</small><br>
+            <small><strong>Check:</strong> Network connectivity and file permissions</small>
+            <button onclick="this.parentElement.remove()" class="close-error">×</button>
+        `;
+        
+        document.body.appendChild(errorDiv);
+        
+        setTimeout(() => {
+            if (errorDiv.parentElement) {
+                errorDiv.remove();
+            }
+        }, 8000);
+    }
+
+    closeModal() {
+        document.getElementById('docModal').style.display = 'none';
+    }
+
+    handleFilterClick(filterId) {
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === filterId);
+        });
+
+        this.currentFilter = filterId;
+        this.applyFilters();
+    }
+
+    handleSearch(searchTerm) {
+        this.searchTerm = searchTerm.toLowerCase();
+        this.applyFilters();
+    }
+
+    applyFilters() {
+        const sections = document.querySelectorAll('.section');
+        let visibleSections = 0;
+
+        sections.forEach(section => {
+            const sectionId = section.dataset.section;
+            const sectionTitle = section.querySelector('h2').textContent.toLowerCase();
+            const subHeaderBtns = section.querySelectorAll('.sub-header-btn');
+            
+            let shouldShow = false;
+
+            const filterMatch = this.currentFilter === 'all' || sectionId === this.currentFilter;
+            
+            if (filterMatch) {
+                if (this.searchTerm === '') {
+                    shouldShow = true;
+                } else {
+                    if (sectionTitle.includes(this.searchTerm)) {
+                        shouldShow = true;
+                    } else {
+                        subHeaderBtns.forEach(btn => {
+                            if (btn.textContent.toLowerCase().includes(this.searchTerm)) {
+                                shouldShow = true;
+                            }
+                        });
+                    }
+                }
+            }
+
+            section.style.display = shouldShow ? 'block' : 'none';
+            if (shouldShow) visibleSections++;
+        });
+
+        const noResults = document.getElementById('noResults');
+        noResults.style.display = visibleSections === 0 ? 'block' : 'none';
+    }
+
+    setupEventListeners() {
+        const searchBar = document.getElementById('searchBar');
+        searchBar.addEventListener('input', (e) => this.handleSearch(e.target.value));
+
+        document.getElementById('closeModal').addEventListener('click', () => this.closeModal());
+        
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('docModal');
+            if (e.target === modal) this.closeModal();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') this.closeModal();
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                searchBar.focus();
+            }
+        });
+    }
+
+    clearMainContent() {
+        const mainContent = document.getElementById('mainContent');
+        const sections = mainContent.querySelectorAll('.section');
+        sections.forEach(section => section.remove());
+    }
+
+    showError(message) {
+        const loadingMsg = document.getElementById('loadingMessage');
+        const errorMsg = document.getElementById('errorMessage');
+        
+        loadingMsg.style.display = 'none';
+        errorMsg.innerHTML = `
+            <strong><i class="fas fa-exclamation-triangle"></i> Error Loading Data</strong>
+            ${message}<br><br>
+            <strong>Troubleshooting:</strong><br>
+            • Check network connectivity to shared drive<br>
+            • Verify server is running on port 5002<br>
+            • Ensure Excel file is accessible at network path<br>
+            • Check browser console (F12) for additional details
+        `;
+        errorMsg.style.display = 'block';
+    }
+
+    hideLoading() {
+        document.getElementById('loadingMessage').style.display = 'none';
+    }
+}
+
+let app;
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Initializing main portal...');
+    app = new BidPortalApp();
+});
+</script>
+
+<script src="/shared/session.js"></script>
+<!-- Priority System Extension -->
+<link rel="stylesheet" href="priority-styles.css">
+<script src="priority-system.js"></script>
+
+<style>
+/* Additional styles for session management and bid name */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-session-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-size: 0.9rem;
+}
+
+.user-name {
+    font-weight: bold;
+    color: #ffd700;
+}
+
+.logout-btn {
+    padding: 6px 12px;
+    border: 2px solid #dc3545;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.logout-btn:hover {
+    background: linear-gradient(135deg, #c82333, #a71e2a);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+}
+
+.bid-name {
+    color: #ffd700;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+    .header-right {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .user-session-info {
+        justify-content: space-between;
+    }
+    
+    .search-bar {
+        width: 100%;
+    }
+}
+</style>
+
+</body>
+</html>

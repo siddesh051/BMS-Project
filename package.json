@@ -1,0 +1,83 @@
+{
+  "name": "qg_bid_portal",
+  "version": "1.0.0",
+  "description": "QuadGen Wireless Bid Portal - Priority-based file management system with authentication and Excel integration",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "prod": "cross-env NODE_ENV=production node server.js",
+    "test": "node server.js",
+    "iis-install": "npm install --production",
+    "iis-start": "node server.js",
+    "health-check": "node -e \"require('http').get('http://localhost:5001/api/health', (res) => { console.log('Health check:', res.statusCode === 200 ? 'OK' : 'FAILED'); process.exit(res.statusCode === 200 ? 0 : 1); })\""
+  },
+  "keywords": [
+    "bid-portal",
+    "file-management",
+    "excel",
+    "authentication",
+    "priority-system",
+    "express",
+    "iis",
+    "nodejs"
+  ],
+  "author": {
+    "name": "QuadGen Wireless",
+    "email": "admin@quadgenwireless.com"
+  },
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "cors": "^2.8.5",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.10",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
+  },
+  "repository": {
+    "type": "private",
+    "url": "internal"
+  },
+  "config": {
+    "port": "5001",
+    "host": "172.17.1.6"
+  },
+  "iisnode": {
+    "node_env": "production",
+    "nodeProcessCountPerApplication": 1,
+    "maxConcurrentRequestsPerProcess": 1024,
+    "maxNamedPipeConnectionRetry": 3,
+    "namedPipeConnectionRetryDelay": 2000,
+    "maxNamedPipeConnectionPoolSize": 512,
+    "maxNamedPipePooledConnectionAge": 30000,
+    "asyncCompletionThreadCount": 0,
+    "initialRequestBufferSize": 4096,
+    "maxRequestBufferSize": 65536,
+    "watchedFiles": "*.js;*.json;config.json",
+    "uncFileChangesPollingInterval": 5000,
+    "gracefulShutdownTimeout": 60000,
+    "loggingEnabled": true,
+    "logDirectoryNameSuffix": "logs",
+    "debuggingEnabled": false,
+    "devErrorsEnabled": false,
+    "flushResponse": false,
+    "enableXFF": false
+  },
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "ia32"
+  ]
+}

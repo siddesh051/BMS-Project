@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Create New Bid</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="/shared/common.css">
+<link rel="stylesheet" href="/bid-tracker/create-bid.css">
+<link rel="icon" href="/assets/qg.jpg">
+<style>
+.fixed-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 2px solid #e2e8f0;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: 16px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  z-index: 1000;
+}
+
+.fixed-actions button {
+  min-width: 160px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Add bottom padding to main content to prevent overlap with fixed buttons */
+.main-container {
+  padding-bottom: 100px;
+}
+
+/* Style for save status text */
+.fixed-actions #saveStatus {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -30px;
+  background: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="page-header">
+    <div style="display:flex;align-items:center;gap:10px">
+      <img src="/assets/qg.jpg" alt="QG" style="height:28px;width:auto;border-radius:6px">
+      <h1 style="margin:0;color:white;font-weight:700">Create New Bid</h1>
+    </div>
+    <nav style="display:flex;gap:8px;align-items:center">
+      <a class="btn-link" href="/home/home.html" style="color:white">Home</a>
+      <a class="btn-link" id="viewBidListLink" href="/home/home.html#tracker-bids" style="color:white">View Bid List</a>
+      <button class="btn-secondary" onclick="sessionManager.logout()">Logout</button>
+    </nav>
+  </header>
+
+  <main class="content">
+    <div id="successNotice" class="success-notice" style="display:none"></div>
+
+    <div class="main-container" style="display:grid;grid-template-columns:1fr 360px;gap:16px">
+      <div class="form-container">
+        <form id="createBidForm" class="form">
+
+          <!-- Bid Information -->
+          <section class="card collapsible bid-info-section" id="secBidInfo">
+            <div class="card-header collapsible-header" onclick="toggleSection('bidInfoBody')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+              <h3 style="margin:0">📋 Bid Information</h3>
+              <button type="button" class="collapse-toggle" id="toggleBidInfo">Hide</button>
+            </div>
+            <div class="card-body grid-2 collapsible-body open" id="bidInfoBody">
+              <div class="form-field">
+                <label for="bidName">Bid Name *</label>
+                <input id="bidName" name="bidName" type="text" required autocomplete="off">
+              </div>
+              <div class="form-field">
+                <label for="deadline">Deadline *</label>
+                <input id="deadline" name="deadline" type="date" required>
+              </div>
+              <div class="form-field">
+                <label for="clientName">Client Name</label>
+                <input id="clientName" name="clientName" type="text" autocomplete="off">
+              </div>
+              <div class="form-field">
+                <label for="ownerName">Owner</label>
+                <input id="ownerName" name="ownerName" type="text" value="B&P Head, COO, CFO, CEO" readonly>
+              </div>
+              <div class="form-field span-2">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" rows="3"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <!-- Document Builder -->
+          <section class="card collapsible document-builder-section" id="secDocBuilder">
+            <div class="card-header collapsible-header" onclick="toggleSection('docBuilderBody')" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer">
+              <h3 style="margin:0">🛠️ Document Builder Section</h3>
+              <button type="button" class="collapse-toggle" id="toggleDocBuilder">Hide</button>
+            </div>
+
+            <div class="card-body collapsible-body open" id="docBuilderBody">
+              <!-- Template download section -->
+              <div style="margin-bottom:16px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <h5 style="margin:0;color:#374151;font-size:14px;font-weight:600;">Template Download</h5>
+                  <button type="button" id="downloadTemplateBtn" class="btn-secondary" style="font-size:13px;padding:6px 12px;">
+                    📥 Download Sample Template
+                  </button>
+                </div>
+                <p style="margin:0;font-size:12px;color:#6b7280;">Download the standard bid template to fill out with your document requirements</p>
+              </div>
+
+              <!-- Template upload panel -->
+              <div id="templateUploadPanel">
+                <div class="form-field">
+                  <label for="templateFile">Upload Bid Template (Excel)</label>
+                  <input type="file" id="templateFile" accept=".xlsx,.xls">
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+                  <button type="button" id="uploadTemplateBtn" class="btn-primary">Upload & Generate</button>
+                  <button type="button" id="clearTemplateBtn" class="btn-secondary">Clear Template</button>
+                  <span id="templateStatus" class="muted"></span>
+                </div>
+                <div id="templateImportedMeta" class="muted" style="margin-top:8px;display:none"></div>
+                <hr style="margin:16px 0;border:none;border-top:1px solid var(--border)">
+              </div>
+
+              <div style="margin-top:16px">
+                <h4 class="section-subtitle" style="margin:0 0 8px 0">Document List from Template</h4>
+                <div style="overflow-x:auto;">
+                  <table class="table" id="selectedDocsTable">
+                    <thead>
+                      <tr>
+                        <th>Document Type</th>
+                        <th>Category</th>
+                        <th>Document Name</th>
+                        <th>Priority</th>
+                        <th>Section/Clause</th>
+                        <th>Assigned To</th>
+                        <th>Due Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="selectedDocumentsPreview">
+                      <tr><td colspan="8" class="muted">Upload a template to see documents</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div style="margin-top:16px;display:flex;gap:10px;justify-content:center">
+                <button type="button" id="createBidPreview" class="btn-primary" style="display:none">Create Bid Preview</button>
+              </div>
+            </div>
+          </section>
+
+
+        </form>
+      </div>
+
+      <!-- Live Preview -->
+      <aside class="preview card">
+        <div class="card-header">
+          <h3 style="margin:0">📄 Live Preview</h3>
+        </div>
+        <div class="card-body">
+          <div><strong>Bid Name:</strong> <span id="pvBidName">-</span></div>
+          <div><strong>Client:</strong> <span id="pvClient">-</span></div>
+          <div><strong>Deadline:</strong> <span id="pvDeadline">-</span></div>          
+          <div><strong>Owner:</strong> <span id="pvOwner">-</span></div>
+          <div><strong>Description:</strong> <span id="pvDesc">-</span></div>
+          <div style="margin-top:10px"><strong>Document Structure:</strong>
+            <div id="pvDocs" style="margin:6px 0 0 0;font-family:monospace;font-size:12px"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Fixed Action Buttons -->
+  <div class="fixed-actions">
+    <button type="button" id="cancelBtn" class="btn-secondary">Cancel</button>
+    <button type="button" id="saveAll" class="btn-primary">Save All & Create Bid</button>
+    <div id="saveStatus" class="muted" style="margin-top:8px;text-align:center"></div>
+  </div>
+</div>
+
+<script src="/shared/session.js"></script>
+<script src="/shared/tracker-common.js"></script>
+<script src="/bid-tracker/create-bid.js"></script>
+
+<script>
+function toggleSection(targetId) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  const header = target.parentElement?.querySelector('.collapse-toggle');
+  const isOpen = target.classList.contains('open') || target.style.display === 'block' || target.style.display === '';
+  if (isOpen) {
+    target.classList.remove('open');
+    target.style.display = 'none';
+    if (header) header.textContent = 'Show';
+  } else {
+    target.classList.add('open');
+    target.style.display = 'block';
+    if (header) header.textContent = 'Hide';
+  }
+}
+</script>
+</body>
+</html>

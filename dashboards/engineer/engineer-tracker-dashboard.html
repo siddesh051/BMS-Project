@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Engineer Dashboard - QG Bid Management</title>
+<link rel="icon" href="/assets/qg.jpg">
+<link rel="stylesheet" href="/dashboards/engineer/tracker-dashboard.css">
+<link rel="stylesheet" href="/shared/qg-theme.css">
+<link rel="stylesheet" href="/shared/common.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<header class="engineer-header">
+<div class="header-left">
+<div class="logo"></div>
+<h1>My Bid Dashboard</h1>
+<span class="user-role" id="userRole">Engineer</span>
+</div>
+<div class="header-center">
+<div class="search-container">
+<i class="fas fa-search"></i>
+<input type="text" id="bidSearch" placeholder="Search my assigned bids...">
+</div>
+</div>
+<div class="header-right">
+<div class="notifications-panel">
+<button class="notification-btn" onclick="engineerDashboard.toggleNotifications()">
+<i class="fas fa-bell"></i>
+<span class="notification-count" id="notificationCount">0</span>
+</button>
+<div class="notifications-dropdown" id="notificationsDropdown">
+<div class="notifications-header">
+<h3>My Notifications</h3>
+<button onclick="engineerDashboard.markAllNotificationsRead()">Mark all read</button>
+</div>
+<div class="notifications-list" id="notificationsList">
+<div class="loading-notifications">
+<i class="fas fa-spinner fa-spin"></i>
+<span>Loading notifications...</span>
+</div>
+</div>
+</div>
+</div>
+<div class="user-info">
+<div class="user-details">
+<span class="user-name" id="userName">Loading...</span>
+<span class="user-title">Engineer</span>
+</div>
+<div class="user-avatar">
+<i class="fas fa-hard-hat"></i>
+</div>
+</div>
+<button class="logout-btn" onclick="sessionManager.logout()">
+<i class="fas fa-sign-out-alt"></i>
+Logout
+</button>
+</div>
+</header>
+<main class="engineer-main">
+<section class="work-summary">
+<div class="summary-stats">
+<div class="stat-card assigned">
+<div class="stat-icon">
+<i class="fas fa-clipboard-list"></i>
+</div>
+<div class="stat-content">
+<h3 id="assignedBidsCount">0</h3>
+<p>Assigned Bids</p>
+<small id="activeBidsCount">0 active</small>
+</div>
+</div>
+<div class="stat-card pending">
+<div class="stat-icon">
+<i class="fas fa-file-upload"></i>
+</div>
+<div class="stat-content">
+<h3 id="pendingDocumentsCount">0</h3>
+<p>Pending Documents</p>
+<small id="overdueDocumentsCount">0 overdue</small>
+</div>
+</div>
+<div class="stat-card submitted">
+<div class="stat-icon">
+<i class="fas fa-paper-plane"></i>
+</div>
+<div class="stat-content">
+<h3 id="submittedDocumentsCount">0</h3>
+<p>Submitted Documents</p>
+<small id="awaitingApprovalCount">0 awaiting approval</small>
+</div>
+</div>
+<div class="stat-card completed">
+<div class="stat-icon">
+<i class="fas fa-check-circle"></i>
+</div>
+<div class="stat-content">
+<h3 id="approvedDocumentsCount">0</h3>
+<p>Approved Documents</p>
+<small id="completionRate">0% completion rate</small>
+</div>
+</div>
+</div>
+</section>
+<section class="quick-actions">
+<div class="action-grid">
+<button class="action-card primary" onclick="engineerDashboard.showMyBids()">
+<div class="action-icon">
+<i class="fas fa-list"></i>
+</div>
+<div class="action-content">
+<h3>My Bids</h3>
+<p>View all assigned bids</p>
+</div>
+</button>
+<button class="action-card warning" onclick="engineerDashboard.showPendingWork()">
+<div class="action-icon">
+<i class="fas fa-clock"></i>
+</div>
+<div class="action-content">
+<h3>Pending Work</h3>
+<p>Documents to complete</p>
+<span class="action-badge" id="pendingWorkBadge">0</span>
+</div>
+</button>
+<button class="action-card info" onclick="engineerDashboard.showUploadCenter()">
+<div class="action-icon">
+<i class="fas fa-cloud-upload-alt"></i>
+</div>
+<div class="action-content">
+<h3>Upload Documents</h3>
+<p>Submit completed work</p>
+</div>
+</button>
+<button class="action-card success" onclick="engineerDashboard.showMyProgress()">
+<div class="action-icon">
+<i class="fas fa-chart-line"></i>
+</div>
+<div class="action-content">
+<h3>My Progress</h3>
+<p>Track completion status</p>
+</div>
+</button>
+<button class="action-card secondary" onclick="engineerDashboard.showFeedback()">
+<div class="action-icon">
+<i class="fas fa-comments"></i>
+</div>
+<div class="action-content">
+<h3>Feedback & Reviews</h3>
+<p>Manager comments</p>
+</div>
+</button>
+<button class="action-card dark" onclick="engineerDashboard.showHelp()">
+<div class="action-icon">
+<i class="fas fa-question-circle"></i>
+</div>
+<div class="action-content">
+<h3>Help & Support</h3>
+<p>Get assistance</p>
+</div>
+</button>
+</div>
+</section>
+<section class="dashboard-content">
+<div class="content-grid">
+<div class="content-panel">
+<div class="panel-header">
+<h3><i class="fas fa-tasks"></i> My Work Queue</h3>
+<div class="panel-controls">
+<select id="workFilter">
+<option value="all">All Work</option>
+<option value="pending">Pending</option>
+<option value="overdue">Overdue</option>
+<option value="submitted">Submitted</option>
+<option value="approved">Approved</option>
+</select>
+<button onclick="engineerDashboard.refreshWorkQueue()">
+<i class="fas fa-sync-alt"></i>
+</button>
+</div>
+</div>
+<div class="panel-content">
+<div class="work-queue" id="workQueue">
+<div class="loading-work">
+<i class="fas fa-spinner fa-spin"></i>
+<span>Loading work queue...</span>
+</div>
+</div>
+</div>
+</div>
+<div class="content-panel">
+<div class="panel-header">
+<h3><i class="fas fa-exclamation-triangle"></i> Urgent Items</h3>
+<div class="panel-controls">
+<select id="urgentFilter">
+<option value="deadlines">Upcoming Deadlines</option>
+<option value="overdue">Overdue Items</option>
+<option value="feedback">New Feedback</option>
+</select>
+</div>
+</div>
+<div class="panel-content">
+<div class="urgent-list" id="urgentList">
+<div class="loading-urgent">
+<i class="fas fa-spinner fa-spin"></i>
+<span>Loading urgent items...</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="content-grid">
+<div class="content-panel wide">
+<div class="panel-header">
+<h3><i class="fas fa-folder-open"></i> My Assigned Bids</h3>
+<div class="panel-controls">
+<div class="view-toggles">
+<button class="view-toggle active" data-view="cards" onclick="engineerDashboard.switchBidsView('cards')">
+<i class="fas fa-th-large"></i>
+</button>
+<button class="view-toggle" data-view="table" onclick="engineerDashboard.switchBidsView('table')">
+<i class="fas fa-table"></i>
+</button>
+</div>
+<select id="bidsFilter">
+<option value="active">Active Bids</option>
+<option value="all">All Assigned</option>
+<option value="pending">Pending Work</option>
+<option value="completed">Completed</option>
+</select>
+</div>
+</div>
+<div class="panel-content">
+<div class="bids-container">
+<div class="bids-cards-view" id="bidsCardsView">
+<div class="loading-bids">
+<i class="fas fa-spinner fa-spin"></i>
+<span>Loading assigned bids...</span>
+</div>
+</div>
+<div class="bids-table-view" id="bidsTableView" style="display: none;">
+<table class="bids-table">
+<thead>
+<tr>
+<th>Bid Name</th>
+<th>Client</th>
+<th>My Progress</th>
+<th>Pending Docs</th>
+<th>Deadline</th>
+<th>Status</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="bidsTableBody">
+<tr>
+<td colspan="7" class="loading-cell">
+<i class="fas fa-spinner fa-spin"></i>
+Loading assigned bids...
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<div class="modal large" id="uploadModal">
+<div class="modal-content">
+<div class="modal-header">
+<h3><i class="fas fa-cloud-upload-alt"></i> Upload Document</h3>
+<button class="close-modal" onclick="engineerDashboard.closeUploadModal()">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="modal-body">
+<form class="upload-form" id="uploadForm">
+<div class="form-group">
+<label for="bidSelect">Select Bid *</label>
+<select id="bidSelect" required onchange="engineerDashboard.loadBidDocuments()">
+<option value="">Choose bid...</option>
+</select>
+</div>
+<div class="form-group">
+<label for="documentSelect">Select Document *</label>
+<select id="documentSelect" required>
+<option value="">Choose document...</option>
+</select>
+</div>
+<div class="form-group">
+<label for="documentFile">Choose File *</label>
+<div class="file-upload-area" onclick="document.getElementById('documentFile').click()">
+<div class="upload-icon">
+<i class="fas fa-cloud-upload-alt"></i>
+</div>
+<div class="upload-text">
+<span id="uploadText">Click to select file or drag and drop</span>
+<small>Supported formats: PDF, DOC, DOCX, XLS, XLSX</small>
+</div>
+</div>
+<input type="file" id="documentFile" accept=".pdf,.doc,.docx,.xls,.xlsx" style="display: none;" onchange="engineerDashboard.handleFileSelect(this)">
+</div>
+<div class="form-group">
+<label for="uploadComments">Comments (Optional)</label>
+<textarea id="uploadComments" rows="3" placeholder="Add any comments or notes about this document..."></textarea>
+</div>
+<div class="form-actions">
+<button type="button" class="btn secondary" onclick="engineerDashboard.closeUploadModal()">
+<i class="fas fa-times"></i>
+Cancel
+</button>
+<button type="submit" class="btn primary" id="uploadSubmitBtn" disabled>
+<i class="fas fa-upload"></i>
+Upload Document
+</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+<div class="modal large" id="workDetailsModal">
+<div class="modal-content">
+<div class="modal-header">
+<h3><i class="fas fa-file-alt"></i> Document Details</h3>
+<button class="close-modal" onclick="engineerDashboard.closeWorkDetailsModal()">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="modal-body">
+<div class="work-details" id="workDetailsContent">
+<div class="loading-details">
+<i class="fas fa-spinner fa-spin"></i>
+<span>Loading document details...</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="modal medium" id="feedbackModal">
+<div class="modal-content">
+<div class="modal-header">
+<h3><i class="fas fa-comments"></i> Manager Feedback</h3>
+<button class="close-modal" onclick="engineerDashboard.closeFeedbackModal()">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="modal-body">
+<div class="feedback-content" id="feedbackContent">
+<div class="loading-feedback">
+<i class="fas fa-spinner fa-spin"></i>
+<span>Loading feedback...</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="modal medium" id="progressModal">
+<div class="modal-content">
+<div class="modal-header">
+<h3><i class="fas fa-chart-line"></i> My Progress Overview</h3>
+<button class="close-modal" onclick="engineerDashboard.closeProgressModal()">
+<i class="fas fa-times"></i>
+</button>
+</div>
+<div class="modal-body">
+<div class="progress-overview" id="progressOverview">
+<div class="loading-progress">
+<i class="fas fa-spinner fa-spin"></i>
+<span>Loading progress data...</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script src="/shared/session.js"></script>
+<script src="/shared/common.js"></script>
+<script src="/bid-tracker/tracker-config.js"></script>
+<script src="/bid-tracker/tracker-storage.js"></script>
+<script src="/bid-tracker/bid-data-structure.js"></script>
+<script src="/shared/tracker-common.js"></script>
+<script src="/dashboards/engineer/tracker-dashboard.js"></script>
+<script src="/shared/qg-theme.js"></script>
+</body>
+</html>

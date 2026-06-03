@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
+
+<title>Bid Details - QG Bid Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href="/assets/qg.jpg">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+<link rel="stylesheet" href="/shared/common.css" />
+<link rel="stylesheet" href="/shared/qg-theme.css" />
+<link rel="stylesheet" href="/bid-tracker/bid-view.css" />
+</head>
+<body>
+<div class="bid-view-container">
+<nav class="navbar">
+<a class="navbar-brand" href="/home/home.html" style="display:flex;align-items:center;gap:0.85rem">
+<img src="/assets/qg.jpg" alt="QG" />
+</a>
+<div class="bid-header-details">
+  <div class="bid-header-main">
+    <h1 id="headerBidTitleName" class="bid-title">Loading...</h1>
+    <div class="bid-meta-info">
+      <div class="bid-meta-item">
+        <span class="label">Deadline:</span>
+        <span id="displayHeaderDeadline" class="value">-</span>
+        <!-- <button type="button" id="editHeaderDeadlineBtn" class="btn btn-outline-light btn-sm ms-2" style="display:none;">
+          <i class="fa fa-edit"></i> Edit
+        </button> -->
+      </div>
+      <div class="bid-meta-item">
+        <span class="label">Created by:</span>
+        <span id="displayHeaderCreatedBy" class="value">-</span>
+      </div>
+      <div class="bid-meta-item">
+        <span class="label">Client:</span>
+        <span id="displayHeaderClient" class="value">-</span>
+      </div>
+    </div>
+  </div>
+</div>
+  <div class="navbar-progress">
+    <div class="progress-section">
+      <div class="progress-item">
+        <div class="number" id="docsNeeded">0</div>
+        <div class="label">Total Documents</div>
+      </div>
+      <div class="progress-item">
+        <div class="number text-primary" id="docsSubmitted">0</div>
+        <div class="label">Documents Submitted</div>
+      </div>
+      <div class="progress-item">
+        <div class="number text-info" id="docsPending">0</div>
+        <div class="label">Pending Approval</div>
+      </div>
+      <div class="progress-item">
+        <div class="number text-danger" id="docsRejected">0</div>
+        <div class="label">Rejected</div>
+      </div>
+      <div class="progress-item">
+        <div class="number text-success" id="docsApproved">0</div>
+        <div class="label">Approved</div>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 mt-2">
+      <div class="progress w-100" style="height:12px;background:#e9ecef;border-radius:6px;overflow:hidden">
+        <div id="progressBar" class="progress-bar progress-bar-success" style="width:0%;background:#10b981"></div>
+      </div>
+      <strong id="progressText">0%</strong>
+    </div>
+  </div>
+
+<div class="navbar-text">
+<a href="/home/home.html">Home</a>
+<button onclick="sessionManager.logout()">Logout</button>
+</div>
+</nav>
+
+<div class="modal fade" id="editDeadlineModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Deadline</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="modalDeadlineInput" class="form-label">New Deadline</label>
+          <input type="date" id="modalDeadlineInput" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveHeaderDeadlineBtn">Save Deadline</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+<div id="loadingContainer" class="text-center">
+<div class="spinner-border" role="status" aria-hidden="true"></div>
+<p>Loading bid details…</p>
+</div>
+<div id="errorContainer" class="alert alert-danger" style="display:none">
+<h4 class="alert-heading">Error</h4>
+<p id="errorMessage">Failed to load bid</p>
+<button class="btn btn-outline-danger btn-sm" onclick="location.reload()">Retry</button>
+</div>
+<div id="bidContent" style="display:none">
+
+<div class="approve-bid-section" id="approveBidSection" style="display:none">
+<h6 id="approveBidTitle"><i class="fa fa-check-circle"></i>Review Documents before Approval</h6>
+<p id="approveBidMsg"><b>Once approved, this bid will be locked, you can not edit this Bid anymore. A Tab will be created in Bid Document Portal Section.</b></p>
+<button type="button" class="btn-approve-bid" id="finalApproveBidBtn">
+<i class="fa fa-thumbs-up"></i> Finalize Bid Documents
+</button>
+<p id="approveBidStatus" class="text-muted" style="display:none; margin-top:8px;">Waiting for Approval</p>
+</div>
+
+<div class="panel" id="secDocumentsList">
+<div class="panel-header" data-target="documentsListSection">
+<div class="panel-title"><i class="fa fa-files-o"></i>Upload Documents</div>
+<button type="button" class="panel-toggle">
+<span class="chev">▼</span>
+</button>
+</div>
+<div class="panel-body" id="documentsListSection">
+<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex gap-2">
+<span class="badge bg-info" id="documentsCount">0 documents</span>
+<button id="exportDocsBtn" type="button" class="btn btn-primary btn-small">Export to Excel</button>
+</div>
+<div class="d-flex gap-2">
+<button type="button" class="btn btn-outline-secondary btn-sm" id="refreshDocumentsBtn"><i class="fa fa-refresh"></i> Refresh</button>
+<!-- <button type="button" class="btn btn-outline-warning btn-sm manager-only" id="managePrioritiesBtn" style="display:none;">
+  <i class="fa fa-sort-numeric-asc"></i> Manage Priorities
+</button>
+<button type="button" class="btn btn-outline-secondary btn-sm" id="refreshDocumentsBtn"><i class="fa fa-refresh"></i> Refresh</button>
+<button type="button" class="btn btn-outline-warning btn-sm" id="forceSaveBtn">Force Save All</button>
+<button type="button" class="btn btn-outline-primary btn-sm" id="testUploadLogicBtn">Test Upload Logic</button> -->
+</div>
+</div>
+<div class="document-filters">
+<div class="filter-row">
+<div class="filter-group">
+  <label>Document Type</label>
+  <select id="filterDocType" class="filter-input">
+    <option value="">All Types</option>
+  </select>
+</div>
+
+<div class="filter-group">
+  <label>Category</label>
+  <select id="filterCategory" class="filter-input">
+    <option value="">All Categories</option>
+  </select>
+</div>
+
+<div class="filter-group">
+  <label>Document Name</label>
+  <input type="text" id="filterDocName" class="filter-input" placeholder="Search documents..." />
+</div>
+
+<div class="filter-group">
+  <button type="button" id="clearFilters" class="btn-clear-filters">Clear Filters</button>
+</div>
+
+</div>
+</div>
+
+<!-- Add New Document Form -->
+<div class="add-document-form mb-4" style="border: 1px solid #dee2e6; padding: 15px; border-radius: 5px; background-color: #f8f9fa;">
+  <h6><i class="fa fa-plus-circle"></i> Add New Document</h6>
+  <div class="row">
+    <div class="col-md-4">
+      <label class="form-label">Document Type *</label>
+      <div class="input-group">
+        <select id="newDocType" class="form-select">
+          <option value="">Select Document Type</option>
+        </select>
+        <button type="button" class="btn btn-outline-secondary" id="addNewDocTypeBtn" title="Add New Type">
+          <i class="fa fa-plus"></i>
+        </button>
+      </div>
+      <input type="text" id="newDocTypeInput" class="form-control mt-1" placeholder="Enter new document type" style="display:none;" />
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Document Category *</label>
+      <div class="input-group">
+        <select id="newDocCategory" class="form-select" disabled>
+          <option value="">Select Category</option>
+        </select>
+        <button type="button" class="btn btn-outline-secondary" id="addNewCategoryBtn" title="Add New Category" disabled>
+          <i class="fa fa-plus"></i>
+        </button>
+      </div>
+      <input type="text" id="newCategoryInput" class="form-control mt-1" placeholder="Enter new category" style="display:none;" />
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Document Name *</label>
+      <div class="input-group">
+        <select id="newDocName" class="form-select" disabled>
+          <option value="">Select Document</option>
+        </select>
+        <button type="button" class="btn btn-outline-secondary" id="addNewNameBtn" title="Add New Document" disabled>
+          <i class="fa fa-plus"></i>
+        </button>
+      </div>
+      <input type="text" id="newNameInput" class="form-control mt-1" placeholder="Enter new document name" style="display:none;" />
+    </div>
+  </div>
+  <div class="row mt-2">
+    <div class="col-md-3">
+      <label class="form-label">Priority</label>
+      <input type="text" id="newDocPriority" class="form-control" placeholder="Enter priority" />
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Section/Clause</label>
+      <input type="text" id="newDocSection" class="form-control" placeholder="Enter section/clause" />
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Assigned To</label>
+      <input type="text" id="newDocAssigned" class="form-control" placeholder="Enter assigned person" />
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Due Date</label>
+      <input type="date" id="newDocDueDate" class="form-control" />
+    </div>
+  </div>
+  <div class="row mt-3">
+    <div class="col-12">
+      <button type="button" class="btn btn-success" id="saveNewDocBtn">
+        <i class="fa fa-save"></i> Add Document
+      </button>
+      <button type="button" class="btn btn-secondary ms-2" id="resetNewDocBtn">
+        <i class="fa fa-refresh"></i> Reset
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- === Approval Cell Template (hidden; used by JS) === -->
+<template id="approvalCellTemplate">
+  <div class="d-flex align-items-center gap-2">
+    <!-- Visible to ALL roles -->
+    <button type="button" class="btn btn-sm btn-primary btn-doc-submit">Submit</button>
+
+    <!-- Visible only to Manager/Admin/Director AFTER submit -->
+    <div class="approval-actions d-none">
+      <button type="button" class="btn btn-sm btn-success btn-doc-approve">Approve</button>
+      <button type="button" class="btn btn-sm btn-danger btn-doc-reject">Reject</button>
+    </div>
+
+    <!-- Shown to non-moderators after submit -->
+    <span class="ms-2 text-muted small waiting-badge d-none">
+      Submitted • Waiting for Approval
+    </span>
+  </div>
+</template>
+
+<div class="documents-table">
+<table class="table table-striped">
+<thead>
+<tr>
+<!-- Template Data Columns (7 columns) -->
+<th style="min-width:130px">Document Type</th>
+<th style="min-width:140px">Category</th>
+<th style="min-width:200px">Document Name</th>
+<th style="min-width:80px">Priority</th>
+<th style="min-width:130px">Section/Clause</th>
+<th style="min-width:130px">Assigned To</th>
+<th style="min-width:110px">Due Date</th>
+<th style="min-width:150px">Attachment</th>
+<th style="min-width:70px">View</th>
+<th style="min-width:90px">Download</th>
+<th style="min-width:110px">Uploaded By</th>
+<th style="min-width:130px">Finalize</th>
+<th style="min-width:70px" title="Technical Evaluation">TEE</th>
+<th style="min-width:70px" title="Financial Evaluation">FEE</th>
+<th style="min-width:70px" title="Physical Evaluation">PEE</th>
+<th style="min-width:120px">Status</th>
+<th style="min-width:140px">Approval</th>
+<th style="min-width:150px">Notes</th>
+<th style="min-width:100px">Actions</th>
+</tr>
+</thead>
+<tbody id="documentsTableBody">
+<tr><td colspan="19" class="text-center text-muted">No documents yet</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<div id="submitStatus" class="mt-3 text-center" style="display:none"></div>
+</div>
+</div>
+</div>
+
+<div class="modal fade" id="managePrioritiesModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa fa-sort-numeric-asc"></i> Manage Document Type Priorities</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="description-text mb-3">
+          <strong>Note:</strong> In case of duplicates when sorting, prioritized Document Type will come first. Lower numbers have higher priority.
+        </div>
+
+        <div id="priorityDisplay" style="display:none">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0"><i class="fa fa-list-ol"></i> Current Priority Settings</h6>
+            </div>
+            <div class="card-body">
+              <div id="priorityList"></div>
+              <div class="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" class="btn btn-outline-primary btn-sm" id="editPrioritiesBtn">Edit Priorities</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="priorityEdit">
+          <div class="row">
+            <div class="col-md-8">
+              <label for="priorityDocTypeSelect" class="form-label">Document Type</label>
+              <select id="priorityDocTypeSelect" class="form-select"></select>
+            </div>
+            <div class="col-md-4">
+              <label for="priorityValueInput" class="form-label">Priority Value</label>
+              <input type="number" id="priorityValueInput" class="form-control" min="1" placeholder="Enter priority">
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="text-secondary small">Priority Assignments</span>
+              <button type="button" class="btn btn-primary btn-sm" id="assignPriorityBtn" disabled>Assign Priority</button>
+            </div>
+            <div id="priorityAssignments" class="priority-assignments-list">
+              <div class="text-muted small">No priorities assigned yet...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-success" id="savePrioritiesBtn" disabled>Save All Priorities</button>
+        <button type="button" class="btn btn-secondary" id="cancelPrioritiesBtn" style="display:none">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- === Approval Info Modal === -->
+<div class="modal fade" id="approvalInfoModal" tabindex="-1" aria-labelledby="approvalInfoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="approvalInfoModalLabel">Document Approved</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Once approved, only the <strong>Director</strong> can override.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="approvalCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="approvalConfirmBtn">Approve Document</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script> -->
+<script src="/shared/session.js"></script>
+<script src="/shared/tracker-common.js"></script>
+<script src="/bid-tracker/bid-view.js"></script>
+
+<script src="/shared/qg-theme.js"></script>
+</body>
+</html>

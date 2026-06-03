@@ -1,0 +1,87 @@
+{
+  "environments": {
+    "production": {
+      "port": 5003,
+      "host": "172.17.1.20",
+      "baseBidsProposalPath": "\\\\172.17.1.6\\e$\\QuadgenWirless_BidManagementSystem",
+      "excelFilePath": "\\\\172.17.1.6\\e$\\QuadgenWirless_BidManagementSystem\\Bid_Config_Files\\Bid wise Master files.xlsx",
+      "userDataFilePath": "\\\\172.17.1.6\\e$\\QuadgenWirless_BidManagementSystem\\Bid_Config_Files\\Bidportal_Userinfo.xlsx",
+      "bidTrackerFilePath": "\\\\172.17.1.6\\e$\\QuadgenWirless_BidManagementSystem\\Bid_Config_Files\\BidTracker.xlsx",
+      "trackerBidsPath": "\\\\172.17.1.6\\e$\\QuadgenWirless_BidManagementSystem\\New_Bids",
+      "networkBasePath": "\\\\172.17.1.6\\e$\\QuadgenWirless_BidManagementSystem",
+      "allowedDownloadPaths": [
+        "\\\\172.17.1.6\\e$\\QuadgenWirless_BidManagementSystem",
+        "\\\\172.17.1.6\\e$\\QuadgenWirless_BidManagementSystem\\New_Bids"
+      ],
+      "folders": {
+        "configFiles": "Bid_Config_Files",
+        "checklist": "Bid Checklist",
+        "uploads": "Uploads"
+      }
+    },
+    "test": {
+      "port": 5001,
+      "host": "localhost",
+      "baseBidsProposalPath": "C:\\\\Users\\\\siddesh.gp\\\\Downloads\\\\QuadgenWirless_BMS - Production\\\\QuadgenWirless_BMS - Production - Copy (2)\\\\Bid_Config_Files_Local",
+      "excelFilePath": "C:\\\\Users\\\\siddesh.gp\\\\Downloads\\\\QuadgenWirless_BMS - Production\\\\QuadgenWirless_BMS - Production - Copy (2)\\\\Bid_Config_Files_Local\\\\BidMasterFiles_Local.xlsx",
+      "userDataFilePath": "C:\\\\Users\\\\siddesh.gp\\\\Downloads\\\\QuadgenWirless_BMS - Production\\\\QuadgenWirless_BMS - Production - Copy (2)\\\\Bid_Config_Files_Local\\\\Bidportal_Userinfo_Local.xlsx",
+      "bidTrackerFilePath": "C:\\\\Users\\\\siddesh.gp\\\\Downloads\\\\QuadgenWirless_BMS - Production\\\\QuadgenWirless_BMS - Production - Copy (2)\\\\Bid_Config_Files_Local\\\\NewBidTemplate_Local.xlsx",
+      "trackerBidsPath": "C:\\\\Users\\\\siddesh.gp\\\\Downloads\\\\QuadgenWirless_BMS - Production\\\\QuadgenWirless_BMS - Production - Copy (2)\\\\Bid_Config_Files_Local\\\\New_Bids_Local",
+      "networkBasePath": "C:\\\\Users\\\\siddesh.gp\\\\Downloads\\\\QuadgenWirless_BMS - Production\\\\QuadgenWirless_BMS - Production - Copy (2)\\\\Bid_Config_Files_Local",
+      "allowedDownloadPaths": [
+        "C:\\\\Users\\\\siddesh.gp\\\\Downloads\\\\QuadgenWirless_BMS - Production\\\\QuadgenWirless_BMS - Production - Copy (2)\\\\Bid_Config_Files_Local",
+        "C:\\\\Users\\\\siddesh.gp\\\\Downloads\\\\QuadgenWirless_BMS - Production\\\\QuadgenWirless_BMS - Production - Copy (2)\\\\Bid_Config_Files_Local\\\\New_Bids_Local"
+      ],
+      "folders": {
+        "configFiles": "Bid_Config_Files_Test",
+        "checklist": "Bid Checklist_Test",
+        "uploads": "Uploads_Test"
+      }
+    }
+  },
+  "environment": "test",
+  "_comment_dynamic_discovery": "These are discovered automatically from Bid wise Master files.xlsx",
+  "dynamicContent": {
+    "masterChecklistFiles": "auto-discovered from bid master file",
+    "projectFolders": "auto-discovered from file paths in bid master file",
+    "allFilePaths": "read from bid master file - business can add any path/name"
+  },
+  "_comment_cache_settings": "Cache configuration for performance",
+  "cacheDuration": 5000,
+  "enableCaching": true,
+  "_comment_security_settings": "Authentication and security settings",
+  "maxLoginAttempts": 5,
+  "lockoutDuration": 90,
+  "sessionTimeout": 3600,
+  "_comment_server_settings": "Server configuration",
+  "enableCors": true,
+  "staticFilesPath": "./",
+  "defaultRoute": "./auth/login.html",
+  "_comment_logging": "Logging configuration",
+  "enableLogging": true,
+  "logLevel": "info",
+  "logUserActivity": true,
+  "_comment_deployment": "Deployment specific settings",
+  "deploymentType": "iis",
+  "serverName": "QG-BID-SERVER",
+  "adminEmail": "admin@quadgenwireless.com",
+  "_comment_backup_paths": "Fallback file locations if primary paths fail - environment specific",
+  "fallbackPaths": {
+    "production": {
+      "excelFilePath": [
+        "\\\\172.17.1.6\\e$\\QuadgenWirless_BidManagementSystem\\Bid_Config_Files\\Bid wise Master files.xlsx"
+      ],
+      "userDataFilePath": [
+        "\\\\172.17.1.6\\e$\\QuadgenWirless_BidManagementSystem\\Bid_Config_Files\\Bidportal_Userinfo.xlsx"
+      ]
+    },
+    "test": {
+      "excelFilePath": [
+        "C:\\\\Users\\\\siddesh.gp\\\\Downloads\\\\QuadgenWirless_BMS - Production\\\\QuadgenWirless_BMS - Production - Copy (2)\\\\Bid_Config_Files_Local\\\\BidMasterFiles_Local.xlsx"
+      ],
+      "userDataFilePath": [
+        "C:\\\\Users\\\\siddesh.gp\\\\Downloads\\\\QuadgenWirless_BMS - Production\\\\QuadgenWirless_BMS - Production - Copy (2)\\\\Bid_Config_Files_Local\\\\Bidportal_Userinfo_Local.xlsx"
+      ]
+    }
+  }
+}

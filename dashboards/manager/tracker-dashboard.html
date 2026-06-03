@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracker Dashboard - QG Bid Management</title>
+    <link rel="stylesheet" href="/shared/qg-theme.css">
+    <link rel="stylesheet" href="/dashboards/manager/tracker-dashboard.css">
+    <link rel="stylesheet" href="/shared/common.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="tracker-header">
+        <div class="header-left">
+            <div class="logo"></div>
+            <h1>Bid Tracker Dashboard</h1>
+            <span class="user-role" id="userRole">Admin</span>
+        </div>
+        <div class="header-center">
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" id="globalSearch" placeholder="Search bids, documents, users...">
+            </div>
+        </div>
+        <div class="header-right">
+            <!-- QG Unified Notification Bell -->
+            <div class="qg-notif-wrap" id="qgNotifWrap" style="position:relative;display:flex;align-items:center">
+              <button class="qg-notif-btn" id="qgNotifBtn" onclick="QGNotifications.toggle()">
+                <i class="fas fa-bell"></i>
+                <span class="qg-notif-badge" id="qgNotifBadge" style="display:none">0</span>
+              </button>
+              <div class="qg-notif-panel" id="qgNotifPanel" style="display:none">
+                <div class="qg-notif-head">
+                  <span>Notifications</span>
+                  <button onclick="QGNotifications.clearAll()">Clear all</button>
+                </div>
+                <div class="qg-notif-list" id="qgNotifList"></div>
+              </div>
+            </div>
+            <div class="user-info">
+                <div class="user-details">
+                    <span class="user-name" id="userName">Loading...</span>
+                    <span class="user-title">Administrator</span>
+                </div>
+                <div class="user-avatar">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="sessionManager.logout()">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </button>
+        </div>
+    </header>
+    <main class="tracker-main">
+        <section class="tracker-overview">
+            <div class="overview-stats">
+                <div class="stat-card primary">
+                    <div class="stat-icon">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="totalActiveBids">0</h3>
+                        <p>Active Bids</p>
+                        <small id="activeBidsChange">+0 this week</small>
+                    </div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-icon">
+                        <i class="fas fa-file-upload"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="documentsAwaitingReview">0</h3>
+                        <p>Awaiting Review</p>
+                        <small id="pendingReviewsToday">0 new today</small>
+                    </div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="upcomingDeadlines">0</h3>
+                        <p>Upcoming Deadlines</p>
+                        <small id="overdueCount">0 overdue</small>
+                    </div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="completedThisMonth">0</h3>
+                        <p>Completed</p>
+                        <small id="completionRate">0% completion rate</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="quick-actions">
+            <div class="action-grid">
+                <!-- Create New Bid REMOVED to avoid duplicate entry; create is only from Home -->
+                <button class="action-card secondary" onclick="trackerDashboard.showBidList()">
+                    <div class="action-icon">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <div class="action-content">
+                        <h3>All Bids</h3>
+                        <p>View and manage all bids</p>
+                    </div>
+                </button>
+                <button class="action-card warning" onclick="trackerDashboard.showApprovalQueue()">
+                    <div class="action-icon">
+                        <i class="fas fa-thumbs-up"></i>
+                    </div>
+                    <div class="action-content">
+                        <h3>Approval Queue</h3>
+                        <p>Review pending documents</p>
+                        <span class="action-badge" id="approvalQueueCount">0</span>
+                    </div>
+                </button>
+                <button class="action-card info" onclick="trackerDashboard.showTeamManagement()">
+                    <div class="action-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="action-content">
+                        <h3>Team Management</h3>
+                        <p>Manage users and permissions</p>
+                    </div>
+                </button>
+                <button class="action-card success" onclick="trackerDashboard.showReports()">
+                    <div class="action-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="action-content">
+                        <h3>Reports & Analytics</h3>
+                        <p>Generate performance reports</p>
+                    </div>
+                </button>
+                <button class="action-card dark" onclick="trackerDashboard.showSystemSettings()">
+                    <div class="action-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="action-content">
+                        <h3>System Settings</h3>
+                        <p>Configure system preferences</p>
+                    </div>
+                </button>
+            </div>
+        </section>
+        <!-- ...rest of the dashboard remains unchanged... -->
+    </main>
+    <script src="/dashboards/manager/tracker-dashboard.js"></script>
+    <script src="/shared/session.js"></script>
+    <script src="/shared/common.js"></script>
+<script src="/shared/qg-theme.js"></script>
+</body>
+</html>
