@@ -445,7 +445,14 @@ function loadUserData() {
     return null;
   }
 }
-// 
+// Helper — treat blank/Active/active/Yes/Y/1/TRUE as active user
+// Inactive, No, N, 0, Disabled, FALSE = not active
+function isActiveUser(user) {
+  const s = (user.Status ?? user.status ?? '').toString().trim().toLowerCase();
+  if (!s) return true; // blank = active by default
+  return ['active', 'yes', 'y', '1', 'true', 'enabled'].includes(s);
+}
+
 async function sendDocumentFinalizedNotification({ bid, docType, category, docName, engineerUser }) {
   try {
     const transport = getMailTransport();
@@ -656,8 +663,24 @@ function loadBidTemplate() {
   }
 }
 function checkUserAccess(user) {
-  const portalAccess = user['Portal Access'] === 'Yes' || user['Portal Access'] === true;
-  const trackerAccess = user['Tracker Access'] === 'Yes' || user['Tracker Access'] === true;
+  // Accept multiple column name variants (Excel headers vary)
+  const getVal = (...keys) => {
+    for (const k of keys) {
+      const v = user[k];
+      if (v !== undefined && v !== null && v !== '') return v.toString().trim();
+    }
+    return '';
+  };
+  const isYes = v => ['yes', 'y', '1', 'true', 'active', 'enabled'].includes(v.toLowerCase());
+
+  const portalVal  = getVal('Portal Access', 'PortalAccess', 'portalAccess', 'portal_access', 'Portal');
+  const trackerVal = getVal('Tracker Access', 'TrackerAccess', 'trackerAccess', 'tracker_access', 'Tracker');
+
+  // If both columns are missing/blank — grant access by default (don't lock out new users)
+  const bothMissing = !portalVal && !trackerVal;
+  const portalAccess  = bothMissing || isYes(portalVal);
+  const trackerAccess = bothMissing || isYes(trackerVal);
+
   return { portal: portalAccess, tracker: trackerAccess, hasAnyAccess: portalAccess || trackerAccess };
 }
 function authenticateUser(username, password) {
@@ -665,7 +688,7 @@ function authenticateUser(username, password) {
   if (!userData) return { success: false, message: 'Unable to load user data' };
   const user = userData.users.find(u => u.Username && u.Username.toLowerCase() === username.toLowerCase());
   if (!user) return { success: false, message: 'Invalid username or password' };
-  if (user.Status !== 'Active') return { success: false, message: 'Account is not active' };
+  if (!isActiveUser(user)) return { success: false, message: 'Account is not active' };
   if (user.Password !== password) return { success: false, message: 'Invalid username or password' };
   const accessPermissions = checkUserAccess(user);
   if (!accessPermissions.hasAnyAccess) return { success: false, message: 'Account does not have access permissions' };
@@ -1235,8 +1258,8 @@ app.get('/api/bid-tracker/stats/:userId', (req, res) => {
   if (!accessPermissions.tracker) return res.status(403).json({ error: 'No tracker access' });
   const userRole = user.UserType;
   const trackerBids = loadTrackerBids();
-  const totalUsers = userData.users.filter(u => u.Status === 'Active').length;
-  const trackerUsers = userData.users.filter(u => checkUserAccess(u).tracker && u.Status === 'Active').length;
+  const totalUsers = userData.users.filter(u => isActiveUser(u)).length;
+  const trackerUsers = userData.users.filter(u => checkUserAccess(u).tracker && isActiveUser(u)).length;
   let stats = {};
   if (userRole === 'Engineer') {
     const myBids = trackerBids.bids.filter(bid => bid.teamMembers.includes(userId));
@@ -1578,7 +1601,7 @@ app.get('/api/bid-tracker/users', (req, res) => {
         message: 'Unable to load user data'
       });
     }
-    const activeUsers = userData.users.filter(user => user.Status === 'Active');
+    const activeUsers = userData.users.filter(user => isActiveUser(user));
     const formattedUsers = activeUsers.map(user => ({
       UserID: user.UserID,
       username: user.Username,
@@ -1600,6 +1623,25 @@ app.get('/api/bid-tracker/users', (req, res) => {
       error: error.message
     });
   }
+});
+
+// ── Debug: show ALL raw users from Excel (remove after debugging) ──
+app.get('/api/debug/users-raw', (req, res) => {
+  const userData = loadUserData();
+  if (!userData) return res.json({ error: 'Cannot load user data' });
+  res.json({
+    total: userData.users.length,
+    users: userData.users.map(u => ({
+      UserID: u.UserID,
+      Username: u.Username,
+      UserType: u.UserType,
+      Status: u.Status,
+      PortalAccess: u['Portal Access'] ?? u.PortalAccess,
+      TrackerAccess: u['Tracker Access'] ?? u.TrackerAccess,
+      isActive: isActiveUser(u),
+      hasAccess: checkUserAccess(u).hasAnyAccess
+    }))
+  });
 });
 
 // ── Admin-only: user info without any bid data ──
