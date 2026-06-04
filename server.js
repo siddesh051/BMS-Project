@@ -1625,7 +1625,71 @@ app.get('/api/bid-tracker/users', (req, res) => {
   }
 });
 
-// ── Debug: show ALL raw users from Excel (remove after debugging) ──
+// ── Manual notification: engineer→manager or manager→engineer ──
+app.post('/api/bid-tracker/send-notification', (req, res) => {
+  try {
+    const { bidId, message, fromUserId, fromRole, toRole, docType, category, docName, notifType } = req.body;
+    if (!bidId || !message?.trim()) {
+      return res.status(400).json({ success: false, message: 'bidId and message are required' });
+    }
+    const data = getTrackerBids();
+    const bid = data.bids.find(b => b.id === bidId);
+    if (!bid) return res.status(404).json({ success: false, message: 'Bid not found' });
+
+    const userData = loadUserData();
+    const sender = userData?.users?.find(u => u.UserID === fromUserId);
+    const senderName = sender?.FullName || sender?.Username || fromRole || 'User';
+    const bidName = bid.name || bid.bidName || bid.id;
+
+    bid.notifications = bid.notifications || [];
+    bid.notifications.unshift({
+      id: Date.now().toString(36),
+      bidId, message: message.trim().slice(0, 300),
+      fromUserId, fromRole, toRole,
+      type: notifType || 'message',
+      senderName, bidName,
+      docType: docType || null, category: category || null, docName: docName || null,
+      ts: new Date().toISOString(), read: false
+    });
+
+    // If this is a "Notified/Cleared" action — also persist flag on docMeta directly
+    // so it survives page refreshes and works for all previous bids
+    if (notifType === 'cleared' && docName && category && docType) {
+      const key = toDocKey(docType, category, docName);
+      if (bid.docMeta?.[key]) {
+        bid.docMeta[key].managerReviewed = true;
+        bid.docMeta[key].managerReviewedAt = new Date().toISOString();
+        bid.docMeta[key].managerReviewedBy = fromUserId;
+      }
+    }
+    // Keep up to 100 notifications per bid
+    if (bid.notifications.length > 100) bid.notifications.pop();
+    saveTrackerBids(data);
+
+    res.json({ success: true, message: 'Notification sent' });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// ── Get notifications for a bid (for polling) ──
+app.get('/api/bid-tracker/bid-notifications/:bidId', (req, res) => {
+  try {
+    const { bidId } = req.params;
+    const { role } = req.query;
+    const data = getTrackerBids();
+    const bid = data.bids.find(b => b.id === bidId);
+    if (!bid) return res.status(404).json({ success: false });
+    const notifs = role
+      ? (bid.notifications || []).filter(n => n.toRole?.toLowerCase() === role.toLowerCase())
+      : (bid.notifications || []); // all if no role filter
+    res.json({ success: true, notifications: notifs });
+  } catch (e) {
+    res.status(500).json({ success: false });
+  }
+});
+
+
 app.get('/api/debug/users-raw', (req, res) => {
   const userData = loadUserData();
   if (!userData) return res.json({ error: 'Cannot load user data' });
@@ -1700,7 +1764,13 @@ app.get('/api/bid-tracker/bid', (req, res) => {
             tee: { slNo: '', category: '' },
             fee: { slNo: '', category: '' },
             pee: { slNo: '', category: '' }
-          }
+          },
+          managerReviewed: meta.managerReviewed || false,
+          managerReviewedAt: meta.managerReviewedAt || null,
+          engineerFinalized: meta.engineerFinalized || meta.isFinalized || false,
+          managerFinalized: meta.managerFinalized || false,
+          notifiedAt: meta.notifiedAt || null,
+          notifiedTo: meta.notifiedTo || null
         });
       });
     }
@@ -1751,7 +1821,13 @@ app.get('/api/bid-tracker/bids/:id', (req, res) => {
             tee: { slNo: '', category: '' },
             fee: { slNo: '', category: '' },
             pee: { slNo: '', category: '' }
-          }
+          },
+          managerReviewed: meta.managerReviewed || false,
+          managerReviewedAt: meta.managerReviewedAt || null,
+          engineerFinalized: meta.engineerFinalized || meta.isFinalized || false,
+          managerFinalized: meta.managerFinalized || false,
+          notifiedAt: meta.notifiedAt || null,
+          notifiedTo: meta.notifiedTo || null
         });
       });
     }
@@ -1985,13 +2061,21 @@ app.post('/api/bid-tracker/update-bid', (req, res) => {
       const userData = loadUserData();
       const uploadedByUser = userId ? userData?.users?.find(u => u.UserID === userId) : null;
       newlyUploaded.forEach(({ doc }) => {
-        setImmediate(() => sendDocumentUploadNotification({
-          bid,
-          docType:        doc.type,
-          category:       doc.category,
-          docName:        doc.name,
-          uploadedByUser: uploadedByUser
-        }));
+        const docKey = toDocKey(doc.type, doc.category, doc.name);
+        setImmediate(async () => {
+          await sendDocumentUploadNotification({
+            bid, docType: doc.type, category: doc.category,
+            docName: doc.name, uploadedByUser: uploadedByUser
+          });
+          // Store notification timestamp
+          const fd = getTrackerBids();
+          const fb = fd.bids.find(b => b.id === bid.id);
+          if (fb?.docMeta?.[docKey]) {
+            fb.docMeta[docKey].notifiedAt = new Date().toISOString();
+            fb.docMeta[docKey].notifiedTo = 'Manager/Director';
+            saveTrackerBids(fd);
+          }
+        });
       });
     }
 
@@ -2240,11 +2324,21 @@ app.post('/api/bid-tracker/document-update', (req, res) => {
 
     // Send email notification when a file is newly uploaded
     if (isNewUpload) {
-      const userData = loadUserData();
-      const uploadedByUser = userData?.users?.find(u => u.UserID === bid.docMeta[key]?.uploadedBy) || null;
-      setImmediate(() => sendDocumentUploadNotification({
-        bid, docType: type, category, docName: name, uploadedByUser
-      }));
+      const userData2 = loadUserData();
+      const uploadedByUser = userData2?.users?.find(u => u.UserID === bid.docMeta[key]?.uploadedBy) || null;
+      setImmediate(async () => {
+        await sendDocumentUploadNotification({
+          bid, docType: type, category, docName: name, uploadedByUser
+        });
+        // Store notification timestamp in docMeta
+        const fd = getTrackerBids();
+        const fb = fd.bids.find(b => b.id === bidId);
+        if (fb?.docMeta?.[key]) {
+          fb.docMeta[key].notifiedAt = new Date().toISOString();
+          fb.docMeta[key].notifiedTo = 'Manager/Director';
+          saveTrackerBids(fd);
+        }
+      });
     }
 
     return res.json({ success: true, saved: true });
@@ -2730,9 +2824,8 @@ app.get('/api/bid-tracker/get-all-bids/:userId', (req, res) => {
   try {
     const userData = loadUserData();
     const trackerBids = getTrackerBids();
-    const user = userData.users.find(u => u.UserID === req.params.userId);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    const bids = trackerBids.bids;
+    // Don't block if user not found — still return all bids
+    const bids = trackerBids.bids || [];
     const bidList = bids.map(b => {
       // Compute live stats using the SAME logic as bid-view.js updateProgress()
       const docs = Object.values(b.docMeta || {});

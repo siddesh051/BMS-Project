@@ -1,21 +1,21 @@
 .priority-main-tab {
-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+background: linear-gradient(135deg, #1a3f8a, #2563c8) !important;
 color: white !important;
 border: none !important;
 border-radius: 15px !important;
 padding: 8px 8px !important;
 font-weight: 600 !important;
-box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+box-shadow: 0 4px 15px rgba(26, 63, 138, 0.3) !important;
 transition: all 0.3s ease !important;
 font-size: 0.9rem !important;
 }
 .priority-main-tab:hover {
-background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+background: linear-gradient(135deg, #153276, #1a4fa8) !important;
 transform: translateY(-2px) !important;
-box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+box-shadow: 0 6px 20px rgba(26, 63, 138, 0.4) !important;
 }
 .priority-main-tab.active {
-background: linear-gradient(135deg, #2c3e50, #34495e) !important;
+background: linear-gradient(135deg, #1a3f8a, #2563c8) !important;
 box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3) !important;
 }
 .priority-system-section {
@@ -28,7 +28,7 @@ overflow: hidden;
 border: 1px solid rgba(255,255,255,0.3);
 }
 .priority-section-header {
-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+background: linear-gradient(135deg, #1a3f8a, #2563c8);
 padding: 1rem;
 text-align: center;
 color: white;
@@ -104,13 +104,13 @@ left: 100%;
 .priority-tab:hover {
 transform: translateY(-1px);
 box-shadow: 0 4px 15px rgba(0,0,0,0.12);
-color: #667eea;
+color: #2563c8;
 }
 .priority-tab.active {
-background: linear-gradient(135deg, #667eea, #764ba2);
+background: linear-gradient(135deg, #1a3f8a, #2563c8);
 color: white;
 transform: translateY(-2px);
-box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+box-shadow: 0 6px 20px rgba(26, 63, 138, 0.3);
 }
 .priority-tab .document-count {
 display: inline-block;
@@ -147,7 +147,7 @@ transform: translateY(0);
 .priority-header {
 background: linear-gradient(135deg, rgba(248, 249, 250, 0.8), rgba(233, 236, 239, 0.6));
 padding: 1.2rem;
-border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+border-bottom: 1px solid rgba(26, 63, 138, 0.1);
 }
 .priority-header h3 {
 margin: 0 0 0.6rem 0;
@@ -174,7 +174,7 @@ border-radius: 15px;
 box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 .priority-stats i {
-color: #667eea;
+color: #2563c8;
 font-size: 1rem;
 }
 .priority-list {
@@ -204,12 +204,12 @@ top: 0;
 left: 0;
 width: 3px;
 height: 100%;
-background: linear-gradient(135deg, #667eea, #764ba2);
+background: linear-gradient(135deg, #1a3f8a, #2563c8);
 }
 .priority-item:hover {
 transform: translateY(-2px) translateX(3px);
 box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-border-color: #667eea;
+border-color: #2563c8;
 background: linear-gradient(135deg, rgba(255,255,255,1), rgba(248,249,250,0.8));
 }
 .priority-item:hover::before {
@@ -220,7 +220,7 @@ background: linear-gradient(135deg, #f39c12, #e67e22);
 margin-bottom: 0;
 }
 .priority-number {
-background: linear-gradient(135deg, #667eea, #764ba2);
+background: linear-gradient(135deg, #1a3f8a, #2563c8);
 color: white;
 padding: 0.4rem 0.6rem;
 border-radius: 50%;
@@ -231,7 +231,7 @@ min-height: 32px;
 display: flex;
 align-items: center;
 justify-content: center;
-box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+box-shadow: 0 4px 15px rgba(26, 63, 138, 0.3);
 flex-shrink: 0;
 position: relative;
 }
@@ -280,12 +280,12 @@ font-size: 0.7rem;
 font-size: 0.7rem;
 color: white;
 padding: 0.3rem 0.5rem;
-background: linear-gradient(135deg, #17a2b8, #138496);
+background: linear-gradient(135deg, #0ea5e9, #0284c7);
 border-radius: 10px;
 font-weight: 600;
 flex-shrink: 0;
 white-space: nowrap;
-box-shadow: 0 2px 8px rgba(23, 162, 184, 0.2);
+box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2);
 }
 .priority-actions {
 display: flex;
@@ -321,14 +321,14 @@ width: 200px;
 height: 200px;
 }
 .priority-actions .view-btn {
-background: linear-gradient(135deg, #17a2b8, #138496);
+background: linear-gradient(135deg, #0ea5e9, #0284c7);
 color: white;
-box-shadow: 0 2px 8px rgba(23, 162, 184, 0.2);
+box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2);
 }
 .priority-actions .view-btn:hover {
-background: linear-gradient(135deg, #138496, #117a8b);
+background: linear-gradient(135deg, #0284c7, #0369a1);
 transform: translateY(-1px);
-box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
 }
 .priority-actions .download-btn {
 background: linear-gradient(135deg, #28a745, #218838);
@@ -384,7 +384,7 @@ transform: translateY(0);
 
 /* Upload Button Styles */
 .upload-btn {
-background: linear-gradient(135deg, #9b59b6, #8e44ad);
+background: linear-gradient(135deg, #1a3f8a, #2563c8);
 color: white;
 border: none;
 padding: 0.6rem 1.2rem;
@@ -396,7 +396,7 @@ transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 display: flex;
 align-items: center;
 gap: 0.5rem;
-box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
+box-shadow: 0 4px 15px rgba(26, 63, 138, 0.3);
 position: relative;
 overflow: hidden;
 }
@@ -414,9 +414,9 @@ transition: left 0.5s;
 left: 100%;
 }
 .upload-btn:hover {
-background: linear-gradient(135deg, #8e44ad, #7d3c98);
+background: linear-gradient(135deg, #153276, #1a4fa8);
 transform: translateY(-2px);
-box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+box-shadow: 0 6px 20px rgba(26, 63, 138, 0.4);
 }
 .upload-btn:active {
 transform: translateY(0);
@@ -494,15 +494,15 @@ color: #2c3e50;
 }
 .upload-location-input:focus {
 outline: none;
-border-color: #667eea;
+border-color: #2563c8;
 background: white;
-box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+box-shadow: 0 0 0 3px rgba(26, 63, 138, 0.1);
 }
 .upload-location-input::placeholder {
 color: #adb5bd;
 }
 .upload-browse-btn {
-background: linear-gradient(135deg, #17a2b8, #138496);
+background: linear-gradient(135deg, #0ea5e9, #0284c7);
 color: white;
 border: none;
 padding: 0.6rem 1rem;
@@ -517,7 +517,7 @@ gap: 0.5rem;
 margin-top: 0.5rem;
 }
 .upload-browse-btn:hover {
-background: linear-gradient(135deg, #138496, #117a8b);
+background: linear-gradient(135deg, #0284c7, #0369a1);
 transform: translateY(-1px);
 }
 .upload-file-list {
@@ -536,13 +536,13 @@ margin-bottom: 0.3rem;
 background: white;
 border-radius: 6px;
 font-size: 0.8rem;
-border-left: 3px solid #667eea;
+border-left: 3px solid #2563c8;
 }
 .upload-file-item:last-child {
 margin-bottom: 0;
 }
 .upload-file-item i {
-color: #667eea;
+color: #2563c8;
 margin-right: 0.5rem;
 }
 .upload-modal-actions {
@@ -562,14 +562,14 @@ transition: all 0.3s ease;
 min-width: 120px;
 }
 .upload-modal-btn.primary {
-background: linear-gradient(135deg, #9b59b6, #8e44ad);
+background: linear-gradient(135deg, #1a3f8a, #2563c8);
 color: white;
-box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
+box-shadow: 0 4px 15px rgba(26, 63, 138, 0.3);
 }
 .upload-modal-btn.primary:hover {
-background: linear-gradient(135deg, #8e44ad, #7d3c98);
+background: linear-gradient(135deg, #153276, #1a4fa8);
 transform: translateY(-1px);
-box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+box-shadow: 0 6px 20px rgba(26, 63, 138, 0.4);
 }
 .upload-modal-btn.secondary {
 background: #f8f9fa;
@@ -628,10 +628,10 @@ color: #2c3e50;
 font-size: 0.95rem;
 }
 .upload-progress-header i {
-color: #9b59b6;
+color: #2563c8;
 font-size: 1.2rem;
 padding: 0.3rem;
-background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(142, 68, 173, 0.1));
+background: linear-gradient(135deg, rgba(26, 63, 138, 0.1), rgba(37, 99, 200, 0.1));
 border-radius: 50%;
 }
 .close-upload-progress {
@@ -665,7 +665,7 @@ box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
 }
 .upload-progress-fill {
 height: 100%;
-background: linear-gradient(135deg, #9b59b6, #8e44ad);
+background: linear-gradient(135deg, #1a3f8a, #2563c8);
 transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 border-radius: 6px;
 position: relative;
@@ -697,7 +697,7 @@ font-weight: 500;
 }
 .upload-progress-count {
 font-weight: 700;
-color: #9b59b6;
+color: #2563c8;
 font-size: 0.85rem;
 }
 
@@ -719,7 +719,7 @@ gap: 0.8rem;
 border: 1px solid rgba(255,255,255,0.3);
 }
 .upload-status.info {
-background: rgba(155, 89, 182, 0.95);
+background: rgba(26, 63, 138, 0.95);
 color: white;
 }
 .upload-status.success {
@@ -800,10 +800,10 @@ color: #2c3e50;
 font-size: 0.95rem;
 }
 .download-progress-header i {
-color: #667eea;
+color: #2563c8;
 font-size: 1.2rem;
 padding: 0.3rem;
-background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+background: linear-gradient(135deg, rgba(26, 63, 138, 0.1), rgba(26, 63, 138, 0.1));
 border-radius: 50%;
 }
 .close-progress {
@@ -837,7 +837,7 @@ box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
 }
 .download-progress-fill {
 height: 100%;
-background: linear-gradient(135deg, #667eea, #764ba2);
+background: linear-gradient(135deg, #1a3f8a, #2563c8);
 transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 border-radius: 6px;
 position: relative;
@@ -873,7 +873,7 @@ font-weight: 500;
 }
 .download-progress-count {
 font-weight: 700;
-color: #667eea;
+color: #2563c8;
 font-size: 0.85rem;
 }
 .download-all-status {
@@ -893,7 +893,7 @@ gap: 0.8rem;
 border: 1px solid rgba(255,255,255,0.3);
 }
 .download-all-info {
-background: rgba(23, 162, 184, 0.95);
+background: rgba(14, 165, 233, 0.95);
 color: white;
 }
 .download-all-success {
@@ -1031,7 +1031,7 @@ font-style: italic;
 background: linear-gradient(135deg, rgba(248, 249, 250, 0.8), rgba(233, 236, 239, 0.6));
 margin: 1.5rem;
 border-radius: 15px;
-border: 2px dashed rgba(102, 126, 234, 0.2);
+border: 2px dashed rgba(26, 63, 138, 0.2);
 }
 .priority-list .no-results::before {
 content: "📋";
@@ -1048,7 +1048,7 @@ color: #7f8c8d;
 .priority-loading i {
 font-size: 2rem;
 margin-bottom: 1rem;
-color: #667eea;
+color: #2563c8;
 animation: pulse 2s infinite;
 }
 @keyframes pulse {
@@ -1063,10 +1063,10 @@ background: linear-gradient(135deg, #f8f9fa, #e9ecef);
 border-radius: 6px;
 }
 .priority-list::-webkit-scrollbar-thumb {
-background: linear-gradient(135deg, #667eea, #764ba2);
+background: linear-gradient(135deg, #1a3f8a, #2563c8);
 border-radius: 6px;
 border: 1px solid #f8f9fa;
 }
 .priority-list::-webkit-scrollbar-thumb:hover {
-background: linear-gradient(135deg, #764ba2, #667eea);
+background: linear-gradient(135deg, #153276, #1a4fa8);
 }

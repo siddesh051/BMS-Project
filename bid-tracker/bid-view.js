@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     filteredRows: [],
     canModerate: false,
     canEditFinalized: false,
+    bidNotifications: [],
   };
   const el = {
     loading: document.getElementById('loadingContainer'),
@@ -160,6 +161,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const userRole = session?.userType || session?.UserType || session?.role || session?.roleName || session?.userRole || '';
     state.canModerate    = /admin|manager|director/i.test(userRole);
     state.canEditFinalized = /admin|director/i.test(userRole);
+
+    // Notify Manager is now in the Notified column per-doc
+    // Hide the top button
+    const notifyBtn = document.getElementById('notifyManagerBtn');
+    if (notifyBtn) notifyBtn.style.display = 'none';
     document.querySelectorAll('.manager-only').forEach(btn => {
       btn.style.display = state.canModerate ? 'inline-block' : 'none';
     });
@@ -176,6 +182,153 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.classList.add('has-director-admin-access');
     }
   }
+
+  // ── Engineer: top "Notify Manager" button → doc picker → message ──
+  function initNotifyManagerBtn() {
+    const btn = document.getElementById('notifyManagerBtn');
+    if (!btn || btn._notifyInit) return;
+    btn._notifyInit = true;
+    btn.addEventListener('click', () => openNotifyManagerPicker());
+  }
+
+  // Shows finalized docs for engineer to pick which one to notify about
+  function openNotifyManagerPicker() {
+    const existing = document.getElementById('notifyPickerModal');
+    if (existing) existing.remove();
+
+    // Get finalized docs that haven't been notified yet
+    const finalizedDocs = [...state.existingDocMeta.values()].filter(m =>
+      (m.engineerFinalized || m.isFinalized) && m.attachment &&
+      m.status !== 'Approved' && m.status !== 'In Review'
+    );
+
+    const modal = document.createElement('div');
+    modal.id = 'notifyPickerModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center';
+
+    const docOptions = finalizedDocs.length
+      ? finalizedDocs.map(m =>
+          `<option value="${escapeHtml(m.type)}|||${escapeHtml(m.category)}|||${escapeHtml(m.name)}">
+            ${escapeHtml(m.name)} (${escapeHtml(m.type)})
+          </option>`).join('')
+      : '<option value="">No finalized documents available</option>';
+
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:14px;padding:22px;width:460px;max-width:95vw;
+        box-shadow:0 20px 60px rgba(0,0,0,0.25)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <i class="fa fa-bell" style="color:#1a3f8a"></i>
+          <h6 style="margin:0;color:#1a3f8a;font-weight:700;font-size:1rem">Notify Manager</h6>
+        </div>
+        <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:5px">
+          Select Document *
+        </label>
+        <select id="notifyPickerDoc" style="width:100%;padding:8px;border:1.5px solid #d1d5db;
+          border-radius:8px;font-size:0.88rem;margin-bottom:12px;box-sizing:border-box">
+          <option value="">— Select a document —</option>
+          ${docOptions}
+        </select>
+        <label style="font-size:0.82rem;font-weight:600;color:#374151;display:block;margin-bottom:5px">
+          Message * <span style="font-weight:400;color:#9ca3af">(max 300 chars)</span>
+        </label>
+        <textarea id="notifyPickerMsg" maxlength="300"
+          placeholder="What do you want to notify the manager about?"
+          style="width:100%;height:85px;border:1.5px solid #d1d5db;border-radius:8px;
+            padding:9px;font-size:0.88rem;resize:none;box-sizing:border-box;font-family:inherit"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
+          <span id="notifyPickerCount" style="font-size:0.74rem;color:#94a3b8">0 / 300</span>
+          <div style="display:flex;gap:8px">
+            <button id="notifyPickerCancel" style="padding:6px 14px;border-radius:8px;
+              border:1.5px solid #d1d5db;background:#f8fafc;cursor:pointer;font-size:0.82rem;font-weight:600">
+              Cancel</button>
+            <button id="notifyPickerSend" style="padding:6px 18px;border-radius:8px;border:none;
+              background:#1a3f8a;color:#fff;font-weight:700;cursor:pointer;font-size:0.82rem">
+              <i class="fa fa-paper-plane"></i> Send</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    const ta  = modal.querySelector('#notifyPickerMsg');
+    const cnt = modal.querySelector('#notifyPickerCount');
+    ta?.addEventListener('input', () => {
+      const l = ta.value.length;
+      cnt.textContent = `${l} / 300`;
+      cnt.style.color = l > 270 ? '#dc2626' : '#94a3b8';
+    });
+    modal.querySelector('#notifyPickerCancel')?.addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    modal.querySelector('#notifyPickerSend')?.addEventListener('click', async () => {
+      const sel = modal.querySelector('#notifyPickerDoc');
+      const val = sel?.value;
+      const msg = ta?.value?.trim();
+      if (!val) { showNotification('Please select a document.', 'warning'); return; }
+      if (!msg) { showNotification('Please type a message.', 'warning'); return; }
+
+      const [docType, docCat, docName] = val.split('|||');
+      const session = window.sessionManager?.getSession?.() || {};
+      const sendBtn = modal.querySelector('#notifyPickerSend');
+      sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
+
+      try {
+        const r = await fetch('/api/bid-tracker/send-notification', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bidId: state.bidId, message: msg,
+            fromUserId: session.userId, fromRole: 'Engineer', toRole: 'Manager',
+            senderName: session.fullName || session.username || 'Engineer',
+            docType, category: docCat, docName
+          })
+        });
+        const d = await r.json();
+        if (d.success) {
+          modal.remove();
+          state.bidNotifications = state.bidNotifications || [];
+          state.bidNotifications.unshift({
+            id: Date.now().toString(36), toRole: 'Manager', fromRole: 'Engineer',
+            docName, category: docCat, type: docType, message: msg,
+            senderName: session.fullName || session.username || 'Engineer',
+            ts: new Date().toISOString()
+          });
+          renderDocumentsTable();
+          showNotification('Manager notified ✓', 'success');
+        } else showNotification('Failed: ' + (d.message||'Error'), 'danger');
+      } catch { showNotification('Failed to send', 'danger'); }
+      finally { sendBtn.disabled = false; sendBtn.innerHTML = '<i class="fa fa-paper-plane"></i> Send'; }
+    });
+
+    ta?.focus();
+  }
+
+  // ── Manager: poll for engineer notifications every 30s ─────────────
+  function startManagerNotifPoll() {
+    if (!state.canModerate) return;
+    const poll = async () => {
+      if (!state.bidId) return;
+      try {
+        const r = await fetch(`/api/bid-tracker/bid-notifications/${state.bidId}?role=Manager`);
+        const d = await r.json();
+        if (!d.success) return;
+        (d.notifications || []).filter(n => !n.read).forEach(n => {
+          if (window.QGNotifications?._canUse) {
+            const key = 'manual_' + n.id;
+            if (!QGNotifications._items.find(x => x.id === key)) {
+              QGNotifications._items.unshift({ id: key, type: 'engineer_msg',
+                title: `📢 ${n.senderName}`, message: `[${n.bidName}] ${n.message}`,
+                bidId: n.bidId, ts: Date.now(), read: false });
+              QGNotifications._save(); QGNotifications._renderBadge();
+              const btn = document.getElementById('qgNotifBtn');
+              if (btn) { btn.classList.add('ring'); setTimeout(() => btn.classList.remove('ring'), 700); }
+            }
+          }
+        });
+      } catch {}
+    };
+    poll();
+    setInterval(poll, 30000);
+  }
+
   function getUserFullName(userId) {
     if (!userId) return '—';
     if (!state.users.length) return userId;
@@ -471,6 +624,10 @@ document.addEventListener('DOMContentLoaded', () => {
       tee: (r.tee ?? r.teeSlNo ?? '') || '',
       fee: (r.fee ?? r.feeSlNo ?? '') || '',
       pee: (r.pee ?? r.peeSlNo ?? '') || '',
+      notifiedAt: r.notifiedAt || null,
+      notifiedTo: r.notifiedTo || null,
+      managerReviewed: r.managerReviewed || false,
+      managerReviewedAt: r.managerReviewedAt || null,
     };
     
  // Debug log
@@ -535,6 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isFinalized: m.isFinalized || false,
             finalizedBy: m.finalizedBy || null, finalizedAt: m.finalizedAt || null,
             tee: m.tee || '', fee: m.fee || '', pee: m.pee || '',
+        notifiedAt: m.notifiedAt || null, notifiedTo: m.notifiedTo || null,
           });
         });
       });
@@ -556,6 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isFinalized: m.isFinalized || false,
         finalizedBy: m.finalizedBy || null, finalizedAt: m.finalizedAt || null,
         tee: m.tee || '', fee: m.fee || '', pee: m.pee || '',
+        notifiedAt: m.notifiedAt || null, notifiedTo: m.notifiedTo || null,
       });
     });
 
@@ -592,21 +751,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('addDocumentForm');
     if (!form) return;
 
-    const bidApproved = state.bid?.status === 'Approved';
-    const allMeta = [...state.existingDocMeta.values()];
-    const allDocsApproved = allMeta.length > 0 &&
-      allMeta.every(m => (m.status || '').trim() === STATUS.APPROVED);
-
-    const shouldLock = bidApproved || allDocsApproved;
+    // Lock ONLY when manager/director clicked "Finalize Bid Documents" (bid.status = 'Approved')
+    // Do NOT lock just because all docs are individually approved
+    const shouldLock = state.bid?.status === 'Approved';
 
     if (shouldLock) {
-      // Completely hide the form — no partial disabling that can be bypassed
       form.style.display = 'none';
-
-      // Show a locked banner above the document table instead
-      const tableSection = document.getElementById('secDocumentsList') ||
-                           form.parentElement;
-      if (tableSection && !tableSection.querySelector('.bid-locked-banner')) {
+      if (!document.querySelector('.bid-locked-banner')) {
         const banner = document.createElement('div');
         banner.className = 'bid-locked-banner';
         banner.style.cssText = 'background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;font-size:0.88rem;color:#991b1b;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-weight:600';
@@ -1315,6 +1466,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderRowHTML(r) {
     const key = toKey(r.type, r.category, r.name);
     const meta = state.existingDocMeta.get(key) || {};
+    // Destructure for use in template literals
+    const type = r.type, category = r.category, name = r.name;
 
 
     // const disabled = state.bid?.status === 'Approved' ? 'disabled' : '';
@@ -1337,12 +1490,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const engSubmitted = !state.canModerate && isInReview;
     const rowLocked    = isApproved || bidApproved || engSubmitted;
 
-    // Allow upload: not if bid approved, not if doc approved
-    // If In Review but NO attachment (bad data) — still allow upload
-    // If In Review WITH attachment — locked (must unfinalize to replace)
+    // ENGINEER: upload locked when finalized OR submitted OR approved
+    // (must Unfinalize to re-upload — this is the intended flow)
+    // MANAGER: upload locked only when approved
     const uploadDisabled = (
       bidApproved || isApproved ||
-      (isInReview && meta.attachment)  // only lock if file already exists and submitted
+      (!state.canModerate && engineerFinalized) ||  // engineer must unfinalize first
+      (isInReview && meta.attachment)               // submitted with file
     ) ? 'disabled' : '';
 
     const disabled = bidApproved ? 'disabled' : '';
@@ -1539,6 +1693,121 @@ document.addEventListener('DOMContentLoaded', () => {
         <td class="text-center">${viewBtn}</td>
         <td class="text-center">${downloadBtn}</td>
         <td class="text-center">${escapeHtml(uploadedByName || '—')}</td>
+        <td style="min-width:160px;vertical-align:middle">
+          ${(() => {
+            // Normalize for comparison — handles escaped HTML and case differences
+            const _nn = s => (s||'').toLowerCase().replace(/&amp;/g,'&').trim();
+            const _nm = _nn(name), _nc = _nn(category);
+
+            // last manager→engineer feedback for this doc
+            const managerMsg = (state.bidNotifications || []).find(n =>
+              n.toRole === 'Engineer' && n.fromRole !== 'Engineer' &&
+              _nn(n.docName) === _nm && _nn(n.category) === _nc && n.type !== 'cleared'
+            );
+            // manager clicked 'Notified' (cleared) — no message needed
+            const managerCleared = meta.managerReviewed === true ||
+              (state.bidNotifications || []).some(n =>
+                n.type === 'cleared' && n.fromRole !== 'Engineer' &&
+                _nn(n.docName) === _nm && _nn(n.category) === _nc
+              );
+            // last engineer→manager notification for this doc
+            const engNotif = (state.bidNotifications || []).find(n =>
+              n.toRole === 'Manager' && n.fromRole === 'Engineer' &&
+              _nn(n.docName) === _nm && _nn(n.category) === _nc
+            );
+
+            if (isApproved || bidApproved) {
+              return `<span style="color:#059669;font-size:0.75rem;font-weight:600">
+                <i class="fa fa-check-circle"></i> Approved</span>`;
+            }
+
+            // ── MANAGER / DIRECTOR ──────────────────────────────────
+            if (state.canModerate) {
+              return `<div style="display:flex;flex-direction:column;gap:5px">
+                ${engNotif
+                  ? `<span title="${escapeHtml(engNotif.message)} (${new Date(engNotif.ts).toLocaleString('en-IN',{dateStyle:'short',timeStyle:'short'})})"
+                      style="display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:10px;
+                        font-size:0.73rem;font-weight:600;background:#d1fae5;color:#065f46;cursor:default;
+                        max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                      <i class="fa fa-bell"></i>
+                      ${escapeHtml(engNotif.message.slice(0,22))}${engNotif.message.length>22?'…':''}
+                    </span>`
+                  : engineerFinalized
+                    ? `<span style="font-size:0.73rem;color:#d97706;font-weight:600">
+                        <i class="fa fa-clock"></i> Awaiting notification</span>`
+                    : `<span style="color:#9ca3af;font-size:0.74rem">—</span>`
+                }
+                <div style="display:flex;gap:5px;flex-wrap:wrap">
+                  <button type="button" class="doc-notify-engineer-btn"
+                    data-doc="${escapeHtml(name)}" data-cat="${escapeHtml(category)}" data-type="${escapeHtml(type)}"
+                    style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+                      border-radius:8px;border:1.5px solid #f59e0b;background:#fffbeb;color:#b45309;
+                      font-size:0.73rem;font-weight:600;cursor:pointer">
+                    <i class="fa fa-reply"></i> ${managerMsg ? 'Re-feedback' : 'Feedback'}
+                  </button>
+                  <button type="button" class="doc-mark-notified-btn"
+                    data-doc="${escapeHtml(name)}" data-cat="${escapeHtml(category)}" data-type="${escapeHtml(type)}"
+                    style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+                      border-radius:8px;border:1.5px solid #059669;background:#d1fae5;color:#065f46;
+                      font-size:0.73rem;font-weight:600;cursor:pointer">
+                    <i class="fa fa-check"></i> Notified
+                  </button>
+                </div>
+                ${managerMsg
+                  ? `<span style="font-size:0.7rem;color:#64748b;font-style:italic;
+                      max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                      title="${escapeHtml(managerMsg.message)}">
+                      ✓ "${escapeHtml(managerMsg.message.slice(0,24))}${managerMsg.message.length>24?'…':''}"
+                    </span>`
+                  : managerCleared
+                    ? `<span style="font-size:0.7rem;color:#059669;font-weight:600">
+                        ✓ Marked as notified</span>`
+                  : ''
+                }
+              </div>`;
+            }
+
+            // ── ENGINEER ────────────────────────────────────────────
+            // Show manager's response (feedback message OR "Notified" cleared status)
+            // Then show Notify Manager button (only when finalized & not yet submitted)
+            return `<div style="display:flex;flex-direction:column;gap:5px">
+
+              ${/* Manager sent feedback message */managerMsg
+                ? `<span title="${escapeHtml(managerMsg.message)} — ${new Date(managerMsg.ts).toLocaleString('en-IN',{dateStyle:'short',timeStyle:'short'})}"
+                    style="display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:10px;
+                      font-size:0.73rem;font-weight:600;background:#fef3c7;color:#92400e;cursor:default;
+                      max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                    <i class="fa fa-comment"></i>
+                    ${escapeHtml(managerMsg.message.slice(0,24))}${managerMsg.message.length>24?'…':''}
+                  </span>`
+                : managerCleared
+                  ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 9px;
+                      border-radius:10px;font-size:0.73rem;font-weight:600;background:#d1fae5;color:#065f46">
+                      <i class="fa fa-check-circle"></i> Reviewed — can submit
+                    </span>`
+                  : ''
+              }
+
+              ${/* Notify Manager button — shown when finalized, not yet submitted/approved */
+                engineerFinalized && !isInReview && !isApproved
+                ? `<button type="button" class="doc-notify-manager-btn"
+                    data-doc="${escapeHtml(name)}" data-cat="${escapeHtml(category)}" data-type="${escapeHtml(type)}"
+                    style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+                      border-radius:8px;border:1.5px solid #1a3f8a;background:#eff6ff;color:#1a3f8a;
+                      font-size:0.73rem;font-weight:600;cursor:pointer">
+                    <i class="fa fa-bell"></i>
+                    ${engNotif ? 'Re-notify Manager' : 'Notify Manager'}
+                  </button>`
+                : isInReview
+                  ? `<span style="font-size:0.73rem;color:#64748b;font-style:italic">Submitted</span>`
+                  : !engineerFinalized
+                    ? `<span style="color:#9ca3af;font-size:0.74rem">—</span>`
+                    : ''
+              }
+
+            </div>`;
+          })()}
+                </td>
         <td class="text-center">${finalizeBtn}</td>
         <td>${editableTee}</td>
         <td>${editableFee}</td>
@@ -1595,6 +1864,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <i class="fa fa-times"></i> Reject
                   </button>
                 </div>
+
               </div>`;
             }
 
@@ -1645,6 +1915,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const rejectBtn  = tr.querySelector('.doc-reject-btn, .btn-reject');
       approveBtn?.addEventListener('click', () => handleApproveReject(type, category, name, true));
       rejectBtn?.addEventListener('click', () => handleApproveReject(type, category, name, false));
+
+      // Manager: Notify Engineer per-doc button
+      const notifyEngBtn = tr.querySelector('.doc-notify-engineer-btn');
+      notifyEngBtn?.addEventListener('click', () => openNotifyEngineerModal(type, category, name));
+
+      // Manager: "Notified" button — clears mandatory check without message
+      const markNotifiedBtn = tr.querySelector('.doc-mark-notified-btn');
+      markNotifiedBtn?.addEventListener('click', () => handleMarkDocNotified(type, category, name));
+
+      // Engineer: Notify Manager per-doc button
+      const notifyMgrBtn = tr.querySelector('.doc-notify-manager-btn');
+      notifyMgrBtn?.addEventListener('click', () => openNotifyManagerDocModal(type, category, name));
 
       // New: Submit ↑ sets status and reveals actions appropriately
       const submitBtn = tr.querySelector('.btn-doc-submit');
@@ -1804,11 +2086,42 @@ document.addEventListener('DOMContentLoaded', () => {
       const key = toKey(type, category, name);
       const meta = state.existingDocMeta.get(key) || {};
 
-      // Must have a file before submitting
+      // Must have a file
       if (!meta.attachment) {
         showNotification('Upload a file before submitting for review.', 'danger');
         return;
       }
+
+      // meta.managerReviewed = true when manager clicked "Notified"
+      // Also treat docs already In Review / Approved / Rejected as reviewed (old bids)
+      const alreadyReviewed = meta.managerReviewed ||
+        [STATUS.REVIEW, STATUS.APPROVED, STATUS.REJECTED].includes((meta.status||'').trim()) ||
+        (meta.status||'').toLowerCase() === 'reject';
+
+      if (!alreadyReviewed) {
+        // Check if manager gave feedback (without clicking Notified)
+        const normName = (s) => (s||'').toLowerCase().replace(/&amp;/g,'&').trim();
+        const _hasFeedback = (state.bidNotifications || []).some(n =>
+          n.toRole === 'Engineer' && n.fromRole !== 'Engineer' && n.type !== 'cleared' &&
+          normName(n.docName) === normName(name) &&
+          normName(n.category) === normName(category)
+        );
+        const _engNotified = (state.bidNotifications || []).some(n =>
+          n.toRole === 'Manager' && n.fromRole === 'Engineer' &&
+          normName(n.docName) === normName(name) &&
+          normName(n.category) === normName(category)
+        );
+        if (!_engNotified) {
+          showNotification('Notify the manager first using "Notify Manager" in the Notified column.', 'danger');
+        } else if (_hasFeedback) {
+          showNotification('Manager sent feedback — make changes, re-notify, and wait for manager to click "Notified".', 'warning');
+        } else {
+          showNotification('Waiting for manager to click "Notified" before you can submit.', 'warning');
+        }
+        return;
+      }
+
+
 
       // Validate TEE/FEE/PEE must be filled before engineer submits
       if (!meta.tee || !meta.fee || !meta.pee) {
@@ -2023,6 +2336,138 @@ document.addEventListener('DOMContentLoaded', () => {
     showNotification('Failed to update approval', 'danger');
   }
 }  
+  // ── Engineer: Notify Manager for a specific doc (from Notified column) ──
+
+  // ── Manager: "Notified" — clears submit block without message ──────
+  async function handleMarkDocNotified(docType, docCat, docName) {
+    const session = window.sessionManager?.getSession?.() || {};
+    try {
+      const r = await fetch('/api/bid-tracker/send-notification', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bidId: state.bidId,
+          message: '(Reviewed — engineer can proceed)',
+          fromUserId: session.userId, fromRole: 'Manager', toRole: 'Engineer',
+          senderName: session.fullName || session.username || 'Manager',
+          docType, category: docCat, docName, notifType: 'cleared'
+        })
+      });
+      const d = await r.json();
+      if (d.success) {
+        state.bidNotifications = state.bidNotifications || [];
+        state.bidNotifications.unshift({
+          id: Date.now().toString(36), toRole: 'Engineer', fromRole: 'Manager',
+          type: 'cleared', docName, category: docCat,
+          message: '(Reviewed — engineer can proceed)',
+          senderName: session.fullName || session.username || 'Manager',
+          ts: new Date().toISOString()
+        });
+        // Also set flag on local meta for immediate submit unlock
+        const key = toKey(docType, docCat, docName);
+        const localMeta = state.existingDocMeta.get(key);
+        if (localMeta) {
+          localMeta.managerReviewed = true;
+          localMeta.managerReviewedAt = new Date().toISOString();
+        }
+        renderDocumentsTable();
+        showNotification('Marked as notified — engineer can now submit ✓', 'success');
+      }
+    } catch { showNotification('Failed', 'danger'); }
+  }
+
+  // ── Manager: Notify Engineer for a specific doc ─────────────────────
+  // ── Shared notify modal for both flows ──────────────────────────────
+  function _openNotifyModal(opts, docType, docCat, docName) {
+    const { title, btnColor, fromRole, toRole } = opts;
+    const existing = document.getElementById('_notifySharedModal');
+    if (existing) existing.remove();
+    const modal = document.createElement('div');
+    modal.id = '_notifySharedModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:14px;padding:22px;width:430px;max-width:95vw;
+        box-shadow:0 20px 60px rgba(0,0,0,0.25)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <i class="fa fa-bell" style="color:${btnColor}"></i>
+          <h6 style="margin:0;color:#1a3f8a;font-weight:700;font-size:1rem">${title}</h6>
+        </div>
+        <p style="margin:0 0 10px;font-size:0.78rem;color:#64748b">
+          Doc: <strong>${escapeHtml(docName)}</strong>
+        </p>
+        <textarea id="_notifySharedText" maxlength="300"
+          placeholder="Type your message... (max 300 characters)"
+          style="width:100%;height:90px;border:1.5px solid #d1d5db;border-radius:8px;
+            padding:9px;font-size:0.88rem;resize:none;box-sizing:border-box;font-family:inherit"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
+          <span id="_notifySharedCount" style="font-size:0.74rem;color:#94a3b8">0 / 300</span>
+          <div style="display:flex;gap:8px">
+            <button id="_notifySharedCancel" style="padding:6px 14px;border-radius:8px;
+              border:1.5px solid #d1d5db;background:#f8fafc;cursor:pointer;font-size:0.82rem;font-weight:600">
+              Cancel</button>
+            <button id="_notifySharedSend" style="padding:6px 18px;border-radius:8px;border:none;
+              background:${btnColor};color:#fff;font-weight:700;cursor:pointer;font-size:0.82rem">
+              <i class="fa fa-paper-plane"></i> Send</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    const ta = modal.querySelector('#_notifySharedText');
+    const cnt = modal.querySelector('#_notifySharedCount');
+    ta?.addEventListener('input', () => {
+      const l = ta.value.length;
+      cnt.textContent = `${l} / 300`;
+      cnt.style.color = l > 270 ? '#dc2626' : '#94a3b8';
+    });
+    modal.querySelector('#_notifySharedCancel')?.addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    modal.querySelector('#_notifySharedSend')?.addEventListener('click', async () => {
+      const msg = ta?.value?.trim();
+      if (!msg) { showNotification('Please type a message.', 'warning'); return; }
+      const session = window.sessionManager?.getSession?.() || {};
+      const sendBtn = modal.querySelector('#_notifySharedSend');
+      sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
+      try {
+        const res = await fetch('/api/bid-tracker/send-notification', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bidId: state.bidId, message: msg,
+            fromUserId: session.userId, fromRole, toRole,
+            senderName: session.fullName || session.username || fromRole,
+            docType, category: docCat, docName
+          })
+        });
+        const d = await res.json();
+        if (d.success) {
+          modal.remove();
+          state.bidNotifications = state.bidNotifications || [];
+          state.bidNotifications.unshift({
+            id: Date.now().toString(36), toRole, fromRole,
+            docName, category: docCat, type: docType, message: msg,
+            senderName: session.fullName || session.username || fromRole,
+            ts: new Date().toISOString()
+          });
+          renderDocumentsTable();
+          showNotification(`${toRole === 'Manager' ? 'Manager' : 'Engineer'} notified ✓`, 'success');
+        } else showNotification('Failed: ' + (d.message||'Error'), 'danger');
+      } catch { showNotification('Failed to send', 'danger'); }
+      finally { sendBtn.disabled = false; sendBtn.innerHTML = '<i class="fa fa-paper-plane"></i> Send'; }
+    });
+    ta?.focus();
+  }
+
+  // ── Engineer: Notify Manager per-doc ────────────────────────────────
+  function openNotifyManagerDocModal(docType, docCat, docName) {
+    _openNotifyModal({ title: 'Notify Manager', btnColor: '#1a3f8a',
+      fromRole: 'Engineer', toRole: 'Manager' }, docType, docCat, docName);
+  }
+
+  // ── Manager: Send Feedback to Engineer per-doc ───────────────────────
+  function openNotifyEngineerModal(docType, docCat, docName) {
+    _openNotifyModal({ title: 'Send Feedback to Engineer', btnColor: '#f59e0b',
+      fromRole: 'Manager', toRole: 'Engineer' }, docType, docCat, docName);
+  }
+
+
   async function processApproval(type, category, name) {
     try {
       // Manager cannot approve without a file
@@ -2320,6 +2765,16 @@ document.addEventListener('DOMContentLoaded', () => {
       state.bid = bid;
       setEnhancedHeader(bid);
       loadDocsFromBid(bid);
+      // Load notifications for this bid
+      state.bidNotifications = [];
+      fetch(`/api/bid-tracker/bid-notifications/${state.bidId}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) {
+            state.bidNotifications = d.notifications || [];
+            renderDocumentsTable(); // re-render with notifications
+          }
+        }).catch(() => {});
       checkUserPermissions();
       setupNewDocumentForm();
 
@@ -2331,6 +2786,7 @@ document.addEventListener('DOMContentLoaded', () => {
       checkBidApprovalEligibility();
       lockBidAfterApproval();
       checkBidCompleteLock();
+      startManagerNotifPoll();
 
       // ── Load template and attachments in background after page is visible ──
       loadAttachmentsDirectly().then(() => {
