@@ -531,10 +531,9 @@ async function sendDocumentFinalizedNotification({ bid, docType, category, docNa
 
 
 function loadTrackerBids() {
+  // Serve from memory always — only read disk on first load after restart
+  if (trackerBidsCache) return trackerBidsCache;
   const now = Date.now();
-  if (activeConfig.enableCaching && trackerBidsCache && trackerBidsLastLoaded && (now - trackerBidsLastLoaded) < CACHE_DURATION) {
-    return trackerBidsCache;
-  }
 
   const configured = activeConfig.bidTrackerFilePath;
   const isExcel = configured && /\.xlsx?$/i.test(configured);
@@ -625,11 +624,14 @@ function saveTrackerBids(trackerBidsData) {
       bid.documentsPending  = docs.filter(d => !d.attachment).length;
     });
 
-    fs.writeFileSync(trackerFile, JSON.stringify(data, null, 2), 'utf8');
-
-    // Always update cache after write so next read gets fresh data
+    // Update in-memory cache immediately — response is instant
     trackerBidsCache = data;
     trackerBidsLastLoaded = now;
+
+    // Write to disk asynchronously — don't block the HTTP response
+    fs.writeFile(trackerFile, JSON.stringify(data, null, '\t'), 'utf8', (err) => {
+      if (err) console.error('[Tracker Store] Async save failed:', err.message);
+    });
     return true;
   } catch (e) {
     console.error('[Tracker Store] Save failed:', e);
@@ -858,11 +860,29 @@ app.get('/api/bids', (req, res) => {
       path: getFilePath('excelFilePath') || 'File not found'
     });
   }
-  const validatedBids = bidData.bids.map(bid => ({
-    ...bid,
-    fileExists: validateBidFile(bid.filePath),
-    accessible: isPathAllowed(bid.filePath)
-  }));
+
+  // Cross-check with tracker-bids.json — exclude any bid deleted from tracker
+  const trackerBids = getTrackerBids();
+  const trackerIds = new Set((trackerBids.bids || []).map(b =>
+    (b.name || '').toLowerCase().replace(/[^a-z0-9]/g, '_')
+  ));
+  const trackerNames = new Set((trackerBids.bids || []).map(b =>
+    (b.name || '').toLowerCase().trim()
+  ));
+
+  const validatedBids = bidData.bids
+    .filter(bid => {
+      // Keep only bids that still exist in tracker
+      const normName = (bid.name || '').toLowerCase().trim();
+      const normId = (bid.id || '').toLowerCase();
+      return trackerNames.has(normName) || trackerIds.has(normId);
+    })
+    .map(bid => ({
+      ...bid,
+      fileExists: validateBidFile(bid.filePath),
+      accessible: isPathAllowed(bid.filePath)
+    }));
+
   res.json({
     success: true,
     bids: validatedBids,
@@ -955,8 +975,36 @@ app.delete('/api/bid-tracker/delete-bid', async (req, res) => {
       // Don't fail the deletion if folder cleanup fails
     }
 
-    // Remove the bid from the array
+    // Remove the bid from tracker array
     data.bids.splice(bidIndex, 1);
+
+    // ── Also remove from Bid Portal Excel master file ──
+    try {
+      const bidMasterFile = getFilePath('excelFilePath');
+      if (bidMasterFile && fs.existsSync(bidMasterFile)) {
+        const wb = XLSX.readFile(bidMasterFile);
+        const sheetName = wb.SheetNames[0];
+        const ws = wb.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        // Find and remove the row matching this bid name
+        const bidNameLower = (bidToDelete.name || '').toLowerCase();
+        const filtered = rows.filter((row, idx) => {
+          if (idx === 0) return true; // keep header
+          const rowName = (row[0] || '').toString().trim().toLowerCase();
+          return rowName !== bidNameLower;
+        });
+        if (filtered.length < rows.length) {
+          const newWs = XLSX.utils.aoa_to_sheet(filtered);
+          wb.Sheets[sheetName] = newWs;
+          XLSX.writeFile(wb, bidMasterFile);
+          bidDataCache = null; // clear portal cache
+          console.log(`[Delete] Removed "${bidToDelete.name}" from bid portal Excel`);
+        }
+      }
+    } catch (portalErr) {
+      console.warn('[Delete] Could not update portal Excel:', portalErr.message);
+      // Non-fatal — tracker deletion still proceeds
+    }
 
     // Log the deletion (you could also save this to a separate deletions log file)
     const deletionRecord = {
@@ -1009,7 +1057,7 @@ app.delete('/api/bid-tracker/delete-bid', async (req, res) => {
         deletionsLog = deletionsLog.slice(0, 1000);
       }
 
-      await fs.promises.writeFile(deletionsLogPath, JSON.stringify(deletionsLog, null, 2));
+      await fs.promises.writeFile(deletionsLogPath, JSON.stringify(deletionsLog));
       console.log(`Deletion logged to: ${deletionsLogPath}`);
     } catch (logError) {
       console.warn(`Warning: Could not save deletion log: ${logError.message}`);
@@ -1737,55 +1785,51 @@ app.get('/api/bid-tracker/bid', (req, res) => {
     const data = getTrackerBids();
     const bid = data.bids.find(b => b.id === bidId);
     if (!bid) return res.status(404).json({ success: false, message: 'Bid not found' });
-    const documents = [];
-    if (bid.docMeta) {
-      Object.values(bid.docMeta).forEach(meta => {
-        documents.push({
-          type: meta.type,
-          category: meta.category,
-          name: meta.name,
-          status: meta.status || '',
-          notes: meta.notes || '',
-          attachment: meta.attachment,
-          url: meta.url,
-          uploadDate: meta.updatedAt,
-          approvalStatus: meta.approvalStatus || 'Pending Review',
-          priority: meta.priority || '',
-          section: meta.section || '',
-          assignedTo: meta.assignedTo || '',
-          dueDate: meta.dueDate || '',
-          isFinalized: meta.isFinalized || false,
-          finalizedBy: meta.finalizedBy || null,
-          finalizedAt: meta.finalizedAt || null,
-          tee: meta.tee || '',
-          fee: meta.fee || '',
-          pee: meta.pee || '',
-          priorities: meta.priorities || {
-            tee: { slNo: '', category: '' },
-            fee: { slNo: '', category: '' },
-            pee: { slNo: '', category: '' }
-          },
-          managerReviewed: meta.managerReviewed || false,
-          managerReviewedAt: meta.managerReviewedAt || null,
-          engineerFinalized: meta.engineerFinalized || meta.isFinalized || false,
-          managerFinalized: meta.managerFinalized || false,
-          notifiedAt: meta.notifiedAt || null,
-          notifiedTo: meta.notifiedTo || null
-        });
-      });
-    }
-    if (documents.length > 0) {
-    }
+
+    const allMeta = Object.values(bid.docMeta || {});
+    const totalDocs = allMeta.length;
+
+    // Support pagination: ?page=0&pageSize=200
+    // Default: send first 200 docs — client loads more as needed
+    const page     = parseInt(req.query.page     || '0', 10);
+    const pageSize = parseInt(req.query.pageSize  || '200', 10);
+    const metaSlice = allMeta.slice(page * pageSize, (page + 1) * pageSize);
+
+    const documents = metaSlice.map(meta => ({
+      type: meta.type, category: meta.category, name: meta.name,
+      status: meta.status || '', notes: meta.notes || '',
+      attachment: meta.attachment, url: meta.url,
+      uploadDate: meta.updatedAt,
+      uploadedBy: meta.uploadedBy || null,
+      approvalStatus: meta.approvalStatus || 'Pending Review',
+      priority: meta.priority || '', section: meta.section || '',
+      assignedTo: meta.assignedTo || '', dueDate: meta.dueDate || '',
+      isFinalized: meta.isFinalized || false,
+      finalizedBy: meta.finalizedBy || null, finalizedAt: meta.finalizedAt || null,
+      tee: meta.tee || '', fee: meta.fee || '', pee: meta.pee || '',
+      priorities: meta.priorities || { tee:{slNo:'',category:''}, fee:{slNo:'',category:''}, pee:{slNo:'',category:''} },
+      managerReviewed: meta.managerReviewed || false,
+      managerReviewedAt: meta.managerReviewedAt || null,
+      engineerFinalized: meta.engineerFinalized || meta.isFinalized || false,
+      managerFinalized: meta.managerFinalized || false,
+      notifiedAt: meta.notifiedAt || null, notifiedTo: meta.notifiedTo || null
+    }));
+
+    // Build response — explicitly exclude docMeta (it's huge, use documents[] instead)
+    const { docMeta, notifications, ...bidMeta } = bid;
     const formattedBid = {
-      ...bid,
+      ...bidMeta,
       bidId: bid.id,
       bidName: bid.name,
-      documents: documents,
-      docTypes: bid.docTypes || []
+      documents,
+      docTypes: bid.docTypes || [],
+      totalDocs,
+      page, pageSize,
+      totalPages: Math.ceil(totalDocs / pageSize),
+      hasMore: (page + 1) * pageSize < totalDocs
     };
     res.json({ success: true, bid: formattedBid });
   } catch (error) {
-    console.error('Get bid error:', error);
     res.status(500).json({ success: false, message: 'Failed to retrieve bid', error: error.message });
   }
 });
@@ -1831,8 +1875,9 @@ app.get('/api/bid-tracker/bids/:id', (req, res) => {
         });
       });
     }
+    const { docMeta: _dm2, notifications: _n2, ...bidMeta2 } = bid;
     const formattedBid = {
-      ...bid,
+      ...bidMeta2,
       bidId: bid.id,
       bidName: bid.name,
       documents: documents,
@@ -2897,7 +2942,8 @@ app.get('/api/bid-tracker/bid/:id', (req, res) => {
     documentsPendingReview: docs.filter(d => (d.status||'').trim() === 'In Review').length,
     documentsNotStarted:  docs.filter(d => !d.attachment).length,
   };
-  res.json({ success: true, bid: { ...bid, ...liveStats } });
+  const { docMeta: _dm3, notifications: _n3, ...bidMeta3 } = bid;
+  res.json({ success: true, bid: { ...bidMeta3, ...liveStats } });
 });
 app.get('/api/bid-tracker/list/:userId', (req, res) => {
   const userData = loadUserData();

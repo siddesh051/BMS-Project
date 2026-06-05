@@ -10,14 +10,14 @@
 
 /* ── VARIABLES ── */
 :root {
-  --qg-navy:        #0f1e36;
-  --qg-navy-mid:    #162942;
-  --qg-blue-1:      #1a3f8a;
-  --qg-blue-2:      #2563c8;
-  --qg-blue-3:      #2f79e0;
+  --qg-navy:        #5d93eb;
+  --qg-navy-mid:    #67a4f3;
+  --qg-blue-1:      #7da2eb;
+  --qg-blue-2:      #62afee;
+  --qg-blue-3:      #5894e7;
   --qg-accent:      #3b82f6;
-  --qg-accent-h:    #2563eb;
-  --qg-accent-s:    rgba(59,130,246,0.12);
+  --qg-accent-h:    #7195e2;
+  --qg-accent-s:    rgba(59, 131, 246, 0.5);
   --qg-green:       #10b981;
   --qg-green-s:     rgba(16,185,129,0.12);
   --qg-amber:       #f59e0b;

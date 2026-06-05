@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     templateData: {},
     existingDocumentTypes: [],
     existingDocMeta: new Map(),
+    totalDocs: 0,
+    _page: 0,
+    _pageSize: 50,
     documentTypePriorities: new Map(),
     tempPriorities: new Map(),
     prioritiesMode: 'display',
@@ -617,7 +620,9 @@ document.addEventListener('DOMContentLoaded', () => {
       dueDate: r.dueDate || r.DueDate || r.deadline || r.targetDate || '',
       
       // Finalization fields
-      isFinalized: r.isFinalized || false,
+      isFinalized:       r.isFinalized       || false,
+      engineerFinalized: r.engineerFinalized || r.isFinalized || false,
+      managerFinalized:  r.managerFinalized  || false,
       finalizedBy: r.finalizedBy || null,
       finalizedAt: r.finalizedAt || null,
       
@@ -727,7 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateProgress() {
     // Count from existingDocMeta — includes ALL docs (template + manually added)
     const allMeta = [...state.existingDocMeta.values()];
-    const total       = allMeta.length;
+    const total = (state.totalDocs && state.totalDocs > allMeta.length) ? state.totalDocs : allMeta.length;
     const submitted   = allMeta.filter(m => m.attachment).length;
     const approved    = allMeta.filter(m => (m.status||'').trim() === STATUS.APPROVED).length;
     const rejected    = allMeta.filter(m => (m.status||'').trim() === STATUS.REJECTED || (m.status||'').trim() === 'reject').length;
@@ -1434,18 +1439,37 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 
+  // Expose page navigation globally so inline onclick can reach it
+  window._docPage = function(p) {
+    const allRows = state.filteredRows.length > 0 ? state.filteredRows : computeDocumentsFlat();
+    const pageSize = state._pageSize || 50;
+    const totalPages = Math.ceil(allRows.length / pageSize);
+    state._page = Math.max(0, Math.min(p, totalPages - 1));
+    renderDocumentsTable();
+  };
+  window._docPageSize = function(sz) {
+    state._pageSize = sz;
+    state._page = 0;
+    renderDocumentsTable();
+  };
+
   function renderDocumentsTable() {
-    const rows = state.filteredRows.length > 0 ? state.filteredRows : computeDocumentsFlat();
+    const allRows = state.filteredRows.length > 0 ? state.filteredRows : computeDocumentsFlat();
     updateFilterOptions();
     initializePriorityDocTypes();
     const tbody = el.documentsTableBody;
     if (!tbody) return;
-    if (!rows.length) {
+
+    // Remove old pagination
+    const oldPg = document.getElementById('_docPagination');
+    if (oldPg) oldPg.remove();
+
+    if (!allRows.length) {
       tbody.innerHTML = `<tr><td colspan="19" class="text-center text-muted">No documents yet</td></tr>`;
       updateProgress();
       return;
     }
-    rows.sort((a, b) => {
+    allRows.sort((a, b) => {
       const pa = state.documentTypePriorities.get(a.type) ?? Number.MAX_SAFE_INTEGER;
       const pb = state.documentTypePriorities.get(b.type) ?? Number.MAX_SAFE_INTEGER;
       if (pa !== pb) return pa - pb;
@@ -1455,10 +1479,39 @@ document.addEventListener('DOMContentLoaded', () => {
       if (ca) return ca;
       return a.name.localeCompare(b.name);
     });
-    tbody.innerHTML = rows.map(row => renderRowHTML(row)).join('');
+
+    // ── Pagination ──
+    const pageSize = state._pageSize || 50;
+    const totalRows = allRows.length;
+    const totalPages = Math.ceil(totalRows / pageSize);
+    if (state._page >= totalPages) state._page = 0;
+    const start = state._page * pageSize;
+    const end   = Math.min(start + pageSize, totalRows);
+    const pg    = state._page;
+
+    tbody.innerHTML = allRows.slice(start, end).map(row => renderRowHTML(row)).join('');
     bindRowEvents(tbody);
-    installColumnResizers();  
+    installColumnResizers();
     updateProgress();
+
+    if (totalPages > 1) {
+      const ctrl = document.createElement('div');
+      ctrl.id = '_docPagination';
+      ctrl.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 6px;flex-wrap:wrap;font-size:0.83rem;border-top:1px solid #e2e8f0;margin-top:4px';
+      ctrl.innerHTML = `
+        <span style="color:#64748b">Showing <b>${start+1}–${end}</b> of <b>${totalRows}</b> documents</span>
+        <div style="display:flex;gap:4px;margin-left:auto;align-items:center">
+          <button onclick="_docPage(0)"        ${pg===0?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#f8fafc;cursor:pointer;font-size:0.82rem">«</button>
+          <button onclick="_docPage(${pg-1})"  ${pg===0?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#f8fafc;cursor:pointer;font-size:0.82rem">‹ Prev</button>
+          <span style="padding:4px 14px;background:#1a3f8a;color:#fff;border-radius:6px;font-weight:700;font-size:0.82rem">${pg+1} / ${totalPages}</span>
+          <button onclick="_docPage(${pg+1})"  ${pg===totalPages-1?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#f8fafc;cursor:pointer;font-size:0.82rem">Next ›</button>
+          <button onclick="_docPage(${totalPages-1})" ${pg===totalPages-1?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid #d1d5db;background:#f8fafc;cursor:pointer;font-size:0.82rem">»</button>
+          <select onchange="_docPageSize(+this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;font-size:0.82rem;margin-left:6px">
+            ${[25,50,100,200].map(n=>`<option value="${n}"${pageSize===n?' selected':''}>${n} / page</option>`).join('')}
+          </select>
+        </div>`;
+      tbody.closest('table')?.insertAdjacentElement('afterend', ctrl);
+    }
   }
 
 
@@ -1525,7 +1578,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Disable evaluation/editing unless explicitly finalized
     // TEE/FEE/PEE editable for engineer: before finalize or after unfinalize (not when submitted/approved)
     // For manager: always editable unless approved
-    const evaluationDisabled = (isApproved || bidApproved || engSubmitted) ? 'disabled' : '';
+    const evaluationDisabled = state.canModerate
+      ? (isApproved || bidApproved ? 'disabled' : '')
+      : (isApproved || bidApproved || engSubmitted) ? 'disabled' : '';
 
     const finalizedClass = isFinalized ? 'finalized-document' : '';
     // ── Style constants ──
@@ -1594,12 +1649,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // Engineers: all columns locked once finalized (must unfinalize to edit)
     // Managers: columns editable even when finalized (they can always edit)
-    const engLocked = !state.canModerate && (engineerFinalized || rowLocked);
-    const editableSection = (engLocked || (state.canModerate && rowLocked)) ? escapeHtml(meta.section || '')
+    const engLocked = state.canModerate ? false : (engineerFinalized || rowLocked);
+    // Section/Clause — optional, editable for all, locked only when approved/submitted
+    const sectionLocked = isApproved || bidApproved || (engSubmitted && !state.canModerate);
+    const editableSection = sectionLocked
+      ? escapeHtml(meta.section || '—')
       : `<div class="edit-field-container">
           <span class="edit-field-display section-display">${escapeHtml(meta.section || '')}</span>
           <input type="text" class="edit-field-input section-input form-control form-control-sm" style="display:none;" value="${escapeHtml(meta.section || '')}" />
-          <button type="button" class="edit-field-btn section-edit-btn manager-only" style="display:${(!isFinalized && !rowLocked && state.canModerate) ? 'inline-flex' : 'none'};">
+          <button type="button" class="edit-field-btn section-edit-btn" style="display:inline-flex">
             <i class="fa fa-edit"></i>
           </button>
         </div>`;
@@ -1615,21 +1673,26 @@ document.addEventListener('DOMContentLoaded', () => {
       );
       return u?.email || v; // fall back to stored value if no match
     })();
-    const editableAssigned = (engLocked || (state.canModerate && rowLocked))
+    // AssignedTo — optional, editable for all, locked only when approved/submitted
+    const assignedLocked = isApproved || bidApproved || (engSubmitted && !state.canModerate);
+    const editableAssigned = assignedLocked
       ? `<span style="font-size:0.82rem;color:#374151">${escapeHtml(assignedEmail)}</span>`
       : `<div class="edit-field-container">
           <span class="edit-field-display assigned-display">${escapeHtml(meta.assignedTo || '')}</span>
           <input type="text" class="edit-field-input assigned-input form-control form-control-sm" style="display:none;" value="${escapeHtml(meta.assignedTo || '')}" />
-          <button type="button" class="edit-field-btn assigned-edit-btn manager-only" style="display:${(!isFinalized && !rowLocked && state.canModerate) ? 'inline-flex' : 'none'};">
+          <button type="button" class="edit-field-btn assigned-edit-btn" style="display:inline-flex">
             <i class="fa fa-edit"></i>
           </button>
         </div>`;
 
-    const editableDueDate = (engLocked || (state.canModerate && rowLocked)) ? formatDate(meta.dueDate)
+    // DueDate — optional, editable for all, locked only when approved/submitted
+    const dueLocked = isApproved || bidApproved || (engSubmitted && !state.canModerate);
+    const editableDueDate = dueLocked
+      ? (formatDate(meta.dueDate) || '—')
       : `<div class="edit-field-container">
           <span class="edit-field-display due-date-display">${formatDate(meta.dueDate) || ''}</span>
           <input type="date" class="edit-field-input due-date-input form-control form-control-sm" style="display:none;" value="${meta.dueDate || ''}" />
-          <button type="button" class="edit-field-btn due-date-edit-btn manager-only" style="display:${(!isFinalized && !rowLocked && state.canModerate) ? 'inline-flex' : 'none'};">
+          <button type="button" class="edit-field-btn due-date-edit-btn" style="display:inline-flex">
             <i class="fa fa-edit"></i>
           </button>
         </div>`;
@@ -2071,10 +2134,9 @@ document.addEventListener('DOMContentLoaded', () => {
       meta.finalizedBy = finalize ? currentUserId : null;
       meta.finalizedAt = finalize ? new Date().toISOString() : null;
       state.existingDocMeta.set(key, meta);
-          // Reload fresh data from server
-      const updatedBid = await fetchBid(state.bidId);
-      loadDocsFromBid(updatedBid);
+      // Re-render from local state — no re-fetch needed, avoids wiping all loaded docs
       renderDocumentsTable();
+      updateProgress();
       showNotification(finalize ? 'Document finalized successfully' : 'Document unfinalized successfully', 'success');
     } catch (error) {
       showNotification('Failed to finalize document', 'danger');
@@ -2763,6 +2825,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await loadUsers();
       const bid = await fetchBid(id);
       state.bid = bid;
+      state.totalDocs = bid.totalDocs || bid.documentsRequired || 0;
       setEnhancedHeader(bid);
       loadDocsFromBid(bid);
       // Load notifications for this bid
