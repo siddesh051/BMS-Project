@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const API_TEMPLATE = '/api/bid-tracker/template';
   const API_GET_ATTACHMENTS = '/api/bid-tracker/attachments';
   const API_GET_BID_TRIES = [
-    id => `/api/bid-tracker/bid?id=${encodeURIComponent(id)}`,
+    id => `/api/bid-tracker/bid?id=${encodeURIComponent(id)}&pageSize=5000`,
     id => `/api/bid-tracker/bids/${encodeURIComponent(id)}`,
     id => `/api/bid-tracker/bid/${encodeURIComponent(id)}`,
   ];
@@ -1190,7 +1190,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!addResult?.success) throw new Error(addResult?.message || 'Failed to add document');
       const updatedBid = await fetchBid(state.bidId);
       state.bid = updatedBid;
-      loadDocsFromBid(updatedBid);
+      loadAndMerge(updatedBid);
       updateProgress();       // ← refresh header stat numbers immediately
 
       state.existingDocumentTypes.forEach(dt => {
@@ -1334,6 +1334,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
     el.docTypeList.innerHTML = html || '<div class="text-muted small">No document types built yet…</div>';
   }
+  function loadAndMerge(freshBid) {
+    (freshBid.documents || []).forEach(r => {
+      const k = toKey(r.type||'', r.category||'', r.name||'');
+      if (!k) return;
+      const ex = state.existingDocMeta.get(k) || {};
+      state.existingDocMeta.set(k, {
+        ...ex,
+        status: r.status !== undefined ? r.status : ex.status,
+        attachment: r.attachment || ex.attachment,
+        url: r.url || ex.url,
+        approvalStatus: r.approvalStatus || ex.approvalStatus,
+        uploadedBy: r.uploadedBy || ex.uploadedBy,
+        tee: r.tee !== undefined ? r.tee : ex.tee,
+        fee: r.fee !== undefined ? r.fee : ex.fee,
+        pee: r.pee !== undefined ? r.pee : ex.pee,
+        engineerFinalized: r.engineerFinalized !== undefined ? r.engineerFinalized : (r.isFinalized !== undefined ? r.isFinalized : ex.engineerFinalized),
+        managerFinalized: r.managerFinalized !== undefined ? r.managerFinalized : ex.managerFinalized,
+        managerReviewed: r.managerReviewed !== undefined ? r.managerReviewed : ex.managerReviewed,
+        isFinalized: r.isFinalized !== undefined ? r.isFinalized : ex.isFinalized,
+      });
+    });
+    state.bid = freshBid;
+    if (freshBid.totalDocs) state.totalDocs = freshBid.totalDocs;
+    setEnhancedHeader(freshBid);
+  }
+
+  async function persistOneDoc(type, category, name, reason) {
+    try {
+      const key = toKey(type, category, name);
+      const meta = state.existingDocMeta.get(key) || {};
+      const session = window.sessionManager?.getSession?.();
+      await fetch(API_UPDATE_DOCUMENT, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bidId: state.bidId, userId: session?.userId,
+          type, category, name,
+          status: meta.status || '', notes: meta.notes || '',
+          attachment: meta.attachment || null, url: meta.url || null,
+          section: meta.section || '', assignedTo: meta.assignedTo || '',
+          dueDate: meta.dueDate || '', priority: meta.priority || '',
+          isFinalized: meta.isFinalized || false,
+          engineerFinalized: meta.engineerFinalized || false,
+          managerFinalized: meta.managerFinalized || false,
+          finalizedBy: meta.finalizedBy || null, finalizedAt: meta.finalizedAt || null,
+          tee: meta.tee || '', fee: meta.fee || '', pee: meta.pee || '',
+        })
+      });
+    } catch {}
+  }
+
   async function persistStructure(reason) {
     try {
       const session = window.sessionManager?.getSession?.();
@@ -2043,7 +2093,7 @@ document.addEventListener('DOMContentLoaded', () => {
           display.style.display = 'inline-block';
           input.style.display = 'none';
           editBtn.innerHTML = '<i class="fa fa-edit"></i>';
-          editBtn.className = `edit-field-btn ${field}-edit-btn manager-only`;
+          editBtn.className = `edit-field-btn ${field}-edit-btn`;
           cancelBtn.remove();
         };
         editBtn.onclick = () => saveEdit();
@@ -2072,8 +2122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             state.existingDocMeta.set(key, meta);
 
-            // persist via the working /api/bid-tracker/update-bid route
-            await persistStructure('inline-field-edit');
+            await persistOneDoc(type, category, name, 'field-edit');
 
             // refresh UI 
             display.textContent = (field === 'due-date') ? formatDate(newValue) : newValue;
@@ -2161,25 +2210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         (meta.status||'').toLowerCase() === 'reject';
 
       if (!alreadyReviewed) {
-        // Check if manager gave feedback (without clicking Notified)
-        const normName = (s) => (s||'').toLowerCase().replace(/&amp;/g,'&').trim();
-        const _hasFeedback = (state.bidNotifications || []).some(n =>
-          n.toRole === 'Engineer' && n.fromRole !== 'Engineer' && n.type !== 'cleared' &&
-          normName(n.docName) === normName(name) &&
-          normName(n.category) === normName(category)
-        );
-        const _engNotified = (state.bidNotifications || []).some(n =>
-          n.toRole === 'Manager' && n.fromRole === 'Engineer' &&
-          normName(n.docName) === normName(name) &&
-          normName(n.category) === normName(category)
-        );
-        if (!_engNotified) {
-          showNotification('Notify the manager first using "Notify Manager" in the Notified column.', 'danger');
-        } else if (_hasFeedback) {
-          showNotification('Manager sent feedback — make changes, re-notify, and wait for manager to click "Notified".', 'warning');
-        } else {
-          showNotification('Waiting for manager to click "Notified" before you can submit.', 'warning');
-        }
+        showNotification('Notify the manager and wait for manager to click "Notified" before submitting.', 'warning');
         return;
       }
 
@@ -2345,7 +2376,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // state.existingDocMeta.delete(toKey(type, category, name));
       // await persistStructure('remove');
       const updatedBid = await fetchBid(state.bidId);
-      loadDocsFromBid(updatedBid);
+      loadAndMerge(updatedBid);
       renderDocumentsTable();
       showNotification('Document removed', 'success');
     } catch (e) {
@@ -2558,7 +2589,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const d = await r.json();
       if (!d?.success && !d?.ok) throw new Error(d?.message || `Server error ${r.status}`);
       const updatedBid = await fetchBid(state.bidId);
-      loadDocsFromBid(updatedBid);
+      loadAndMerge(updatedBid);
       renderDocumentsTable();
       updateProgress();
       // Reload attachments so View/Download/UploadedBy show immediately without refresh
@@ -2582,7 +2613,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const d = await r.json();
       if (!d?.success && !d?.ok) throw new Error(d?.message || `Server error ${r.status}`);
       const updatedBid = await fetchBid(state.bidId);
-      loadDocsFromBid(updatedBid);
+      loadAndMerge(updatedBid);
       renderDocumentsTable();
       updateProgress();
       // Reload attachments so columns update immediately

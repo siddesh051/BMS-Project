@@ -11,7 +11,7 @@ color: #2c3e50;
 overflow-x: hidden;
 }
 .tracker-header {
-background: linear-gradient(90deg, #1a3f8a 0%, #2563c8 60%, #2f79e0 100%);
+background: #1976d2;
 color: white;
 padding: 1rem 2rem;
 display: flex;
@@ -50,7 +50,7 @@ font-weight: 500;
 }
 .header-center {
 flex: 1;
-max-width: 500px;
+max-width: 100%;
 margin: 0 2rem;
 }
 .search-container {
@@ -287,8 +287,9 @@ color: white;
 transform: translateY(-1px);
 }
 .tracker-main {
-padding: 2rem;
+padding: 1.5rem 2rem;
 width: 100%;
+max-width: 100% !important;
 box-sizing: border-box;
 }
 .tracker-overview {
@@ -1096,21 +1097,21 @@ justify-content: center;
 z-index: 2000;
 }
 .modal.large .modal-content {
-max-width: 800px;
+max-width: 100%;
 width: 90%;
 }
 .modal.extra-large .modal-content {
-max-width: 1200px;
+max-width: 100%;
 width: 95%;
 }
 .modal.medium .modal-content {
-max-width: 600px;
+max-width: 100%;
 width: 80%;
 }
 .modal-content {
 background: white;
 border-radius: 15px;
-max-width: 500px;
+max-width: 100%;
 width: 90%;
 max-height: 90vh;
 overflow-y: auto;

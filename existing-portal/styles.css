@@ -1,21 +1,21 @@
 /* ── QG BMS Theme Variables ── */
 :root {
-  --qg-navy:        #1a3f8a;
-  --qg-blue:        #2563c8;
-  --qg-blue-light:  #2f79e0;
+  --qg-navy:        #1565c0;
+  --qg-blue:        #1a8aff;
+  --qg-blue-light:  #42a5f5;
   --qg-bg:          #f0f7ff;
-  --qg-grad:        linear-gradient(135deg, #1a3f8a, #2563c8, #2f79e0);
-  --qg-grad-hover:  linear-gradient(135deg, #153276, #1a4fa8, #2563c8);
+  --qg-grad:        #1976d2;
+  --qg-grad-hover:  #1565c0;
   --qg-text:        #1e293b;
   --qg-muted:       #64748b;
-  --qg-border:      rgba(37, 99, 200, 0.15);
-  --qg-shadow:      0 4px 16px rgba(26, 63, 138, 0.12);
+  --qg-border:      rgba(26, 138, 255, 0.15);
+  --qg-shadow:      0 4px 16px rgba(21, 101, 192, 0.12);
 }
 
 /* ── Base ── */
 body {
   font-family: 'Segoe UI', Arial, sans-serif;
-  background-color: var(--qg-bg);
+  background-color: #1976d2 !important;
   margin: 0;
   color: var(--qg-text);
   position: relative;
@@ -23,11 +23,9 @@ body {
 body::after {
   content: "";
   position: fixed;
-  top: 20vh; left: 0;
-  width: 100%; height: 80vh;
-  background: url('/assets/qg.jpg') no-repeat center center;
-  background-size: auto;
-  opacity: 0.05;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
   pointer-events: none;
   z-index: -1;
 }
@@ -42,7 +40,7 @@ header {
   padding: 10px 24px;
   color: white;
   box-sizing: border-box;
-  box-shadow: 0 2px 12px rgba(26,63,138,0.3);
+  box-shadow: 0 2px 12px rgba(21,101,192,0.3);
 }
 .header-top {
   display: flex;
@@ -54,13 +52,19 @@ header {
   align-items: center;
 }
 .logo {
-  height: 15vh; width: auto;
+  height: 78px;
+  width: 78px;
   aspect-ratio: 1/1;
   background-image: url('/assets/qg.jpg');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-  margin-right: 15px;
+  background-color: #ffffff;
+  margin-right: 25px;
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(43, 33, 33, 0.15);
+  flex-shrink: 0;
 }
 
 /* ── Search bar ── */
@@ -144,7 +148,7 @@ header {
 
 /* ── Section cards ── */
 .section {
-  background: white;
+  background: rgba(255,255,255,0.95);
   margin: 14px;
   border-radius: 12px;
   overflow: hidden;
@@ -154,7 +158,7 @@ header {
 .section h2 {
   margin: 0;
   padding: 12px 16px;
-  background: var(--qg-grad);
+  background: #1565c0;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
@@ -174,15 +178,15 @@ header {
   display: block; width: 100%;
   padding: 11px 16px; margin: 7px 0;
   text-align: left; font-size: 0.95rem; font-weight: 600;
-  background: linear-gradient(135deg, #1a3f8a, #2563c8);
+  background: #1976d2;
   color: white; border: none; border-radius: 10px;
   cursor: pointer; transition: all 0.25s ease;
-  box-shadow: 0 3px 10px rgba(26,63,138,0.2);
+  box-shadow: 0 3px 10px rgba(21,101,192,0.2);
 }
 .sub-header-btn:hover {
   background: var(--qg-grad-hover);
   transform: translateY(-1px);
-  box-shadow: 0 5px 16px rgba(26,63,138,0.3);
+  box-shadow: 0 5px 16px rgba(21,101,192,0.3);
 }
 .document-count {
   display: inline-block;
@@ -193,7 +197,7 @@ header {
 
 /* ── Sub-header label ── */
 .sub-header {
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  background: #1976d2;
   color: white;
   padding: 7px 12px; margin: 14px 0 7px;
   border-radius: 8px; font-weight: 700;
@@ -218,7 +222,7 @@ header {
   border-radius: 14px; max-width: 700px;
   width: 90%; max-height: 80%; overflow-y: auto;
   position: relative;
-  box-shadow: 0 20px 60px rgba(26,63,138,0.25);
+  box-shadow: 0 20px 60px rgba(21,101,192,0.25);
   border: 1px solid var(--qg-border);
 }
 .modal-content h3 {
@@ -248,7 +252,7 @@ header {
   background: #eff6ff;
   border-color: var(--qg-blue);
   transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(26,63,138,0.1);
+  box-shadow: 0 3px 10px rgba(21,101,192,0.1);
 }
 .document-container {
   display: flex; justify-content: space-between;
@@ -271,10 +275,10 @@ header {
 }
 .action-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.15); }
 .view-btn {
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  background: #1976d2;
   color: white;
 }
-.view-btn:hover { background: linear-gradient(135deg, #0284c7, #0369a1); }
+.view-btn:hover { background: #1976d2; }
 .download-btn {
   background: linear-gradient(135deg, #059669, #047857);
   color: white;
@@ -293,7 +297,7 @@ header {
   animation: slideIn 0.3s ease;
   border: 1px solid rgba(255,255,255,0.2);
 }
-.view-success { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+.view-success { background: #1976d2; }
 .view-loading { background: linear-gradient(135deg, var(--qg-navy), var(--qg-blue)); }
 .download-error, .view-error {
   position: fixed; top: 20px; right: 20px;
