@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>QG_Bids&Proposals</title>
-    <link rel="icon" href="/assets/qg.jpg">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -13,7 +12,7 @@
 <header>
     <div class="header-top">
         <div class="header-left">
-            <div class="logo"></div>
+            <img src="/assets/qg.jpg" alt="QuadGen" class="logo">
             <h1>Web Bid Document Portal</h1>
         </div>
         <div class="header-right">
@@ -104,32 +103,20 @@ window.addEventListener('storage', function(e) {
 window.addEventListener('DOMContentLoaded', function() {
     
     // Display current user info from session
-    const userData = sessionStorage.getItem('userData');
-    if (userData) {
+    // session.js stores in localStorage under 'qg_bid_portal_session'
+    const sessionRaw = localStorage.getItem('qg_bid_portal_session');
+    const userDisplay = document.getElementById('currentUser');
+    if (sessionRaw && userDisplay) {
         try {
-            const user = JSON.parse(userData);
-            const userDisplay = document.getElementById('currentUser');
-            
-            // FIX: Use correct property names that SessionManager creates
-            const displayName = user.fullName || user.FullName || user.username || user.UserName || 'User';
-            
-            if (userDisplay && displayName !== 'User') {
-                userDisplay.innerHTML = `Welcome, <span class="user-name">${displayName}</span>`;
-            } else {
-                userDisplay.innerHTML = `Welcome, <span class="user-name">User</span>`;
-            }
-        } catch (error) {
-            console.error('Error parsing user data:', error);
-            const userDisplay = document.getElementById('currentUser');
-            if (userDisplay) {
-                userDisplay.innerHTML = `Welcome, <span class="user-name">Portal User</span>`;
-            }
+            const user = JSON.parse(sessionRaw);
+            const displayName = user.fullName || user.FullName || user.name || user.Name
+                || user.username || user.Username || user.userId || user.UserID || 'User';
+            userDisplay.innerHTML = `Welcome, <strong>${displayName}</strong>`;
+        } catch (e) {
+            userDisplay.innerHTML = `Welcome, <strong>User</strong>`;
         }
-    } else {
-        const userDisplay = document.getElementById('currentUser');
-        if (userDisplay) {
-            userDisplay.innerHTML = `Welcome, <span class="user-name">User</span>`;
-        }
+    } else if (userDisplay) {
+        userDisplay.innerHTML = `Welcome, <strong>User</strong>`;
     }
 
     // Add logout button event listener
@@ -781,9 +768,9 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 .bid-name {
-    color: #ffd700;
-    font-weight: bold;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    color: #ffffff;
+    font-weight: 900;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
     letter-spacing: 1px;
 }
 
