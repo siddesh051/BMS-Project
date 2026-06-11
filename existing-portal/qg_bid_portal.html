@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>QG_Bids&Proposals</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="/assets/qg.jpg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -13,7 +14,7 @@
     <div class="header-top">
         <div class="header-left">
             <img src="/assets/qg.jpg" alt="QuadGen" class="logo">
-            <h1>Web Bid Document Portal</h1>
+            <h1 id="portalMainTitle">Web Bid Document Portal</h1>
         </div>
         <div class="header-right">
             <input type="text" id="searchBar" placeholder="Search documents..." class="search-bar">
@@ -25,7 +26,9 @@
             </div>
         </div>
     </div>
-    <div class="filter-buttons" id="filterButtons"></div>
+    <div class="header-bottom">
+        <div class="filter-buttons" id="filterButtons"></div>
+    </div>
 </header>
 
 <main id="mainContent">
@@ -102,21 +105,27 @@ window.addEventListener('storage', function(e) {
 
 window.addEventListener('DOMContentLoaded', function() {
     
-    // Display current user info from session
-    // session.js stores in localStorage under 'qg_bid_portal_session'
-    const sessionRaw = localStorage.getItem('qg_bid_portal_session');
+    // Display current user — reads from localStorage qg_bid_portal_session
     const userDisplay = document.getElementById('currentUser');
-    if (sessionRaw && userDisplay) {
+    if (userDisplay) {
         try {
-            const user = JSON.parse(sessionRaw);
-            const displayName = user.fullName || user.FullName || user.name || user.Name
-                || user.username || user.Username || user.userId || user.UserID || 'User';
-            userDisplay.innerHTML = `Welcome, <strong>${displayName}</strong>`;
+            const raw = localStorage.getItem('qg_bid_portal_session');
+            if (raw) {
+                const user = JSON.parse(raw);
+                const pick = (...fields) => fields.find(v => v && String(v).trim()) || '';
+                const displayName = pick(
+                    user.fullName, user.FullName,
+                    user.name, user.Name,
+                    user.username, user.Username,
+                    user.userId, user.UserID
+                ) || 'User';
+                userDisplay.innerHTML = `Welcome, <strong style="color:#fff;font-weight:800">${displayName}</strong>`;
+            } else {
+                userDisplay.innerHTML = 'Welcome';
+            }
         } catch (e) {
-            userDisplay.innerHTML = `Welcome, <strong>User</strong>`;
+            userDisplay.innerHTML = 'Welcome';
         }
-    } else if (userDisplay) {
-        userDisplay.innerHTML = `Welcome, <strong>User</strong>`;
     }
 
     // Add logout button event listener
