@@ -4,15 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QG BMS — Sign In</title>
-  <!-- Local CSS first — no network needed to show the page -->
   <link rel="stylesheet" href="/auth/auth-styles.css">
   <link rel="icon" href="/assets/qg.jpg">
-  <!-- CDN resources load async so they never block the page -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
-  <!-- Fallback if CDN fails - inline the essential icon chars -->
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -20,32 +17,41 @@
 </head>
 <body>
 
-  <!-- animated mesh background -->
+  <!-- animated sky-blue background -->
   <div class="bg-mesh">
     <div class="mesh-orb orb-1"></div>
     <div class="mesh-orb orb-2"></div>
     <div class="mesh-orb orb-3"></div>
+    <div class="mesh-orb orb-4"></div>
+    <!-- floating particles -->
+    <div class="particle p1"></div>
+    <div class="particle p2"></div>
+    <div class="particle p3"></div>
+    <div class="particle p4"></div>
+    <div class="particle p5"></div>
+    <div class="particle p6"></div>
+    <!-- wave layers -->
+    <div class="wave wave-1"></div>
+    <div class="wave wave-2"></div>
   </div>
 
   <div class="login-wrapper">
 
-    <!-- left panel – brand -->
-    <div class="brand-panel">
-      <div class="brand-logo-wrap">
-        <img src="/assets/qg.jpg" alt="QG" onerror="this.style.display='none'">
-        <span class="brand-fallback">QG</span>
-      </div>
-      <h1 class="brand-name">Bid Management<br>System</h1>
-      <p class="brand-tagline">Quadgen Wireless Solutions</p>
-      <div class="brand-features">
-       <!-- <div class="feature-item"><i class="fas fa-shield-alt"></i><span>Role-based access control</span></div>
-        <div class="feature-item"><i class="fas fa-tasks"></i><span>End-to-end bid tracking</span></div>
-        <div class="feature-item"><i class="fas fa-file-excel"></i><span>Automated document management</span></div> -->
-      </div>
-    </div>
-
-    <!-- right panel – form -->
+    <!-- centered single-column layout -->
     <div class="form-panel">
+
+      <!-- Logo + Brand name ABOVE card -->
+      <div class="brand-top">
+        <div class="brand-logo-wrap">
+          <img src="/assets/qg.jpg" alt="QG" onerror="this.style.display='none'">
+          <!-- <span class="brand-fallback">QG</span> -->
+        </div>
+        <div class="brand-top-text">
+          <h1 class="brand-name">Bid Management System</h1>
+          <p class="brand-tagline">Quadgen Wireless Solutions</p>
+        </div>
+      </div>
+
       <div class="form-card">
 
         <div class="form-header">
@@ -53,14 +59,13 @@
           <p>Select your account and sign in</p>
         </div>
 
-        <!-- FORM — select dropdown + password only -->
+        <!-- FORM -->
         <form id="loginForm" class="login-form" autocomplete="off">
 
           <div class="form-group">
             <label class="field-label" for="userSelect">
               <i class="fas fa-user-circle"></i> Select Account
             </label>
-            <!-- Custom styled dropdown with colored role headers -->
             <div class="custom-select-wrap" id="customSelectWrap">
               <div class="custom-select-btn" id="customSelectBtn" onclick="authUI.toggleSelect()">
                 <div class="csel-display" id="cselDisplay">
@@ -104,10 +109,8 @@
 
         </form>
 
-        <!-- status messages -->
         <div id="statusMsg" class="status-msg" style="display:none;"></div>
 
-        <!-- success card shown after login -->
         <div id="successCard" class="success-card" style="display:none;">
           <div class="success-avatar" id="successAvatar"></div>
           <div>
